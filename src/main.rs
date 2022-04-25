@@ -29,13 +29,13 @@ enum Commands {
     /// Remove book
     Remove { id: usize },
     /// Start reading a book
-    Start { id: usize },
+    Start(books::BookQuery),
     /// Finish reading a book
-    Finish { id: usize },
+    Finish(books::BookQuery),
     /// Pause reading a book
-    Stop { id: usize },
+    Stop(books::BookQuery),
     /// Return a book to unread
-    Reset { id: usize },
+    Reset(books::BookQuery),
     /// Use a utility function
     Util(Util),
 }
@@ -85,23 +85,23 @@ fn main() {
             books.remove_book(id);
         }
         // Book operations
-        Commands::Finish { id } => {
-            if let Some(book) = books.books.get_mut(&id) {
+        Commands::Finish(bookquery) => {
+            if let Some(book) = books.get_mut_book(bookquery) {
                 book.finish();
             }
         }
-        Commands::Start { id } => {
-            if let Some(book) = books.books.get_mut(&id) {
+        Commands::Start(bookquery) => {
+            if let Some(book) = books.get_mut_book(bookquery) {
                 book.start();
             }
         }
-        Commands::Reset { id } => {
-            if let Some(book) = books.books.get_mut(&id) {
+        Commands::Reset(bookquery) => {
+            if let Some(book) = books.get_mut_book(bookquery) {
                 book.reset()
             }
         }
-        Commands::Stop { id } => {
-            if let Some(book) = books.books.get_mut(&id) {
+        Commands::Stop(bookquery) => {
+            if let Some(book) = books.get_mut_book(bookquery) {
                 book.stop()
             }
         }

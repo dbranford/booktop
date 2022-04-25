@@ -1,3 +1,4 @@
+use clap::Args;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::fmt;
@@ -58,6 +59,34 @@ impl fmt::Display for Book {
     }
 }
 
+#[derive(Debug)]
+enum BookArg {
+    Id(usize),
+    Title(String),
+}
+
+#[derive(Debug, Args)]
+pub struct BookQuery {
+    id: Option<usize>,
+
+    #[clap(long)]
+    title: Option<String>,
+}
+
+impl BookQuery {
+    fn best_arg(self) -> BookArg {
+        match (self.id, self.title) {
+            (Some(id), Some(_title)) => {
+                println!("Book id supplied, ignoring title");
+                BookArg::Id(id)
+            }
+            (None, Some(title)) => BookArg::Title(title),
+            (Some(id), None) => BookArg::Id(id),
+            (None, None) => panic!("Specify a book"),
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Bookcase {
     name: String,
@@ -91,6 +120,24 @@ impl Bookcase {
             self.books.keys().max().unwrap() + 1,
             Book::new(title, author),
         );
+    }
+    pub fn get_book(&self, query: BookQuery) -> Option<&Book> {
+        match query.best_arg() {
+            BookArg::Id(id) => self.books.get(&id),
+            BookArg::Title(title) => match self.books.iter().find(|x| x.1.title == title) {
+                Some(book_entry) => Some(book_entry.1),
+                None => None,
+            },
+        }
+    }
+    pub fn get_mut_book(&mut self, query: BookQuery) -> Option<&mut Book> {
+        match query.best_arg() {
+            BookArg::Id(id) => self.books.get_mut(&id),
+            BookArg::Title(title) => match self.books.iter_mut().find(|x| x.1.title == title) {
+                Some(book_entry) => Some(book_entry.1),
+                None => None,
+            },
+        }
     }
     pub fn remove_book(&mut self, id: usize) -> () {
         self.books.remove(&id);
