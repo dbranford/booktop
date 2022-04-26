@@ -6,6 +6,7 @@ USAGE:
     booktop [OPTIONS] <SUBCOMMAND>
 
 OPTIONS:
+        --dry-run        Run commands without updating the file
     -f, --file <FILE>    File containing existing bookcase
     -h, --help           Print help information
 

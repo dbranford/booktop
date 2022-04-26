@@ -10,6 +10,10 @@ struct Cli {
     /// File containing existing bookcase
     file: Option<PathBuf>,
 
+    #[clap(long, takes_value = false)]
+    /// Run commands without updating the file
+    dry_run: bool,
+
     #[clap(subcommand)]
     command: Commands,
 }
@@ -90,8 +94,10 @@ fn main() {
         }
     }
 
-    match &file_path {
-        Some(path) => books.close(path),
-        None => (),
-    };
+    if args.dry_run {
+        match &file_path {
+            Some(path) => books.close(path),
+            None => (),
+        };
+    }
 }
