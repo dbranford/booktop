@@ -20,4 +20,5 @@ SUBCOMMANDS:
     reset     Return a book to unread
     start     Start reading a book
     stop      Pause reading a book
+    util      Use a utility function
 ```

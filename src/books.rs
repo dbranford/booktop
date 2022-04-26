@@ -95,4 +95,10 @@ impl Bookcase {
     pub fn remove_book(&mut self, id: usize) -> () {
         self.books.remove(&id);
     }
+    pub fn util_renumber(&mut self) -> () {
+        let tmp = self.books.split_off(&0);
+        for (ind, val) in tmp.into_values().enumerate() {
+            self.books.insert(ind + 1, val);
+        }
+    }
 }

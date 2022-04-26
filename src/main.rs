@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 use std::fs::File;
 use std::path::PathBuf;
 mod books;
@@ -36,6 +36,19 @@ enum Commands {
     Stop { id: usize },
     /// Return a book to unread
     Reset { id: usize },
+    /// Use a utility function
+    Util(Util),
+}
+
+#[derive(Debug, Args)]
+struct Util {
+    #[clap(subcommand)]
+    command: UtilCommands,
+}
+
+#[derive(Debug, Subcommand)]
+enum UtilCommands {
+    Renumber,
 }
 
 fn main() {
@@ -92,9 +105,15 @@ fn main() {
                 book.stop()
             }
         }
+        Commands::Util(util) => match util.command {
+            UtilCommands::Renumber {} => {
+                books.util_renumber();
+                books.list()
+            }
+        },
     }
 
-    if args.dry_run {
+    if !args.dry_run {
         match &file_path {
             Some(path) => books.close(path),
             None => (),
