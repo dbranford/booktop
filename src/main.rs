@@ -37,7 +37,15 @@ enum Commands {
 fn main() {
     let args = Cli::parse();
 
-    let mut file_path = args.file;
+    let default_file_path = PathBuf::from("bookcase.booktop.json");
+
+    let mut file_path = match args.file {
+        Some(path) => Some(path),
+        None => match default_file_path.is_file() {
+            true => Some(default_file_path),
+            false => None,
+        },
+    };
 
     let mut books = match &file_path {
         Some(path) => books::Bookcase::open(path),
