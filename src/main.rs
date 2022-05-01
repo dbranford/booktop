@@ -14,6 +14,10 @@ struct Cli {
     /// Run commands without updating the file
     dry_run: bool,
 
+    #[clap(short, long, takes_value = false)]
+    /// Follow command with list
+    list: bool,
+
     #[clap(subcommand)]
     command: Commands,
 }
@@ -111,6 +115,10 @@ fn main() {
                 books.list()
             }
         },
+    }
+
+    if args.list {
+        books.list();
     }
 
     if !args.dry_run {
