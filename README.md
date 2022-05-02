@@ -17,6 +17,7 @@ SUBCOMMANDS:
     help      Print this message or the help of the given subcommand(s)
     init      Initialise bookcase file
     list      List all books
+    pick      Pick a book at random
     remove    Remove book
     reset     Return a book to unread
     start     Start reading a book

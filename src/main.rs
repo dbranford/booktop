@@ -32,6 +32,8 @@ enum Commands {
     Init { path: PathBuf },
     /// Remove book
     Remove { id: usize },
+    /// Pick a book at random
+    Pick {},
     /// Start reading a book
     Start(books::BookQuery),
     /// Finish reading a book
@@ -87,6 +89,10 @@ fn main() {
         }
         Commands::Remove { id } => {
             books.remove_book(id);
+        }
+        Commands::Pick {} => {
+            let picked = books.pick_book();
+            println!("{} | {}", picked.0, picked.1)
         }
         // Book operations
         Commands::Finish(bookquery) => {

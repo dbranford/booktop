@@ -1,4 +1,5 @@
 use clap::Args;
+use rand::seq::IteratorRandom;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::fmt;
@@ -137,6 +138,13 @@ impl Bookcase {
                 Some(book_entry) => Some(book_entry.1),
                 None => None,
             },
+        }
+    }
+    pub fn pick_book(&self) -> (&usize, &Book) {
+        let mut rng = rand::thread_rng();
+        match self.books.iter().choose(&mut rng) {
+            Some(book) => book,
+            None => panic!("No books to pick from"),
         }
     }
     pub fn remove_book(&mut self, id: usize) -> () {
