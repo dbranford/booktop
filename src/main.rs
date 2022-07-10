@@ -2,6 +2,7 @@ use clap::{Args, Parser, Subcommand};
 use std::fs::File;
 use std::path::PathBuf;
 mod books;
+mod util;
 
 #[derive(Debug, Parser)]
 #[clap(about = "A basic tracker for books", long_about = None)]
@@ -9,6 +10,10 @@ struct Cli {
     #[clap(long, short)]
     /// File containing existing bookcase
     file: Option<PathBuf>,
+
+    #[clap(long, takes_value = false)]
+    /// Do not attempt to open a (default) file
+    no_file: bool,
 
     #[clap(long, takes_value = false)]
     /// Run commands without updating the file
@@ -50,15 +55,23 @@ enum Commands {
 struct Util {
     #[clap(subcommand)]
     command: UtilCommands,
+
+    #[clap(short, long, takes_value = false)]
+    write: bool,
 }
 
 #[derive(Debug, Subcommand)]
 enum UtilCommands {
+    /// Set books to be a non-empty example bookcase
+    ExampleBookcase,
+    /// Re-index bookcase, reassigning no longer active keys
     Renumber,
 }
 
 fn main() {
     let args = Cli::parse();
+
+    let mut write = !args.dry_run;
 
     let default_file_path = PathBuf::from("bookcase.booktop.json");
 
@@ -70,9 +83,9 @@ fn main() {
         },
     };
 
-    let mut books = match &file_path {
-        Some(path) => books::Bookcase::open(path),
-        None => books::Bookcase::new(),
+    let mut books = match (&file_path, args.no_file) {
+        (Some(path), false) => books::Bookcase::open(path),
+        (_, _) => books::Bookcase::new(),
     };
 
     match args.command {
@@ -115,19 +128,23 @@ fn main() {
                 book.stop()
             }
         }
-        Commands::Util(util) => match util.command {
-            UtilCommands::Renumber {} => {
-                books.util_renumber();
-                books.list()
+        Commands::Util(util) => {
+            write = util.write;
+            match util.command {
+                UtilCommands::ExampleBookcase {} => books = util::example_bookcase(),
+                UtilCommands::Renumber {} => {
+                    books.util_renumber();
+                    books.list()
+                }
             }
-        },
+        }
     }
 
     if args.list {
         books.list();
     }
 
-    if !args.dry_run {
+    if write {
         match &file_path {
             Some(path) => books.close(path),
             None => (),

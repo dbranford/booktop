@@ -10,6 +10,7 @@ OPTIONS:
     -f, --file <FILE>    File containing existing bookcase
     -h, --help           Print help information
     -l, --list           Follow command with list
+        --no-file        Do not attempt to open a (default) file
 
 SUBCOMMANDS:
     add       Add a book

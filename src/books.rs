@@ -120,10 +120,11 @@ impl Bookcase {
         }
     }
     pub fn add_book(&mut self, title: String, author: String) -> () {
-        self.books.insert(
-            self.books.keys().max().unwrap() + 1,
-            Book::new(title, author),
-        );
+        let key = match self.books.keys().max() {
+            Some(max_key) => max_key + 1,
+            None => 1,
+        };
+        self.books.insert(key, Book::new(title, author));
     }
     pub fn get_book(&self, query: BookQuery) -> Option<&Book> {
         match query.best_arg() {
