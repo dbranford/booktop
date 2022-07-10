@@ -1,5 +1,6 @@
 use clap::Args;
 use rand::seq::IteratorRandom;
+use semver::Version;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::fmt;
@@ -92,6 +93,7 @@ impl BookQuery {
 pub struct Bookcase {
     name: String,
     pub books: BTreeMap<usize, Book>,
+    version: Version,
 }
 
 impl Bookcase {
@@ -99,6 +101,7 @@ impl Bookcase {
         Bookcase {
             name: "Bookcase".to_string(),
             books: BTreeMap::new(),
+            version: Version::parse("0.0.1").unwrap(),
         }
     }
     pub fn open(path: &PathBuf) -> Bookcase {

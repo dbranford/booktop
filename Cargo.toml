@@ -5,7 +5,8 @@ authors = ["Dominic Branford"]
 edition = "2021"
 
 [dependencies]
-clap = { version="3.1", features = ["derive"] }
-rand = { version="0.8" }
+clap = { version = "3.1", features = ["derive"] }
+rand = { version = "0.8" }
+semver = { version = "1", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1" }
