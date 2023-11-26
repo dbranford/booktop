@@ -1,6 +1,7 @@
 use clap::{Args, Parser, Subcommand};
 use std::fs::File;
 use std::path::PathBuf;
+mod book;
 mod books;
 mod util;
 
