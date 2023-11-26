@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fmt;
+
 #[derive(Eq, PartialEq, Debug, Deserialize, Serialize)]
 enum Read {
     Read,
@@ -50,5 +51,38 @@ impl Book {
 impl fmt::Display for Book {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}---{:?} ({})", self.title, self.author, self.read)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_yaml;
+
+    fn test_book() -> Book {
+        Book {
+            title: "Titular Title".to_string(),
+            author: "Authoritative Author".to_string(),
+            read: Read::Unread,
+        }
+    }
+
+    #[test]
+    fn serialize() {
+        let b = test_book();
+        let s = serde_yaml::to_string(&b).unwrap();
+        assert_eq!(
+            s,
+            "title: Titular Title\nauthor: Authoritative Author\nread: Unread\n".to_string()
+        );
+    }
+
+    #[test]
+    fn deserialize() {
+        let b = test_book();
+        let s = "title: Titular Title\nauthor: Authoritative Author\nread: Unread\n";
+
+        let r: Book = serde_yaml::from_str(s).unwrap();
+        assert_eq!(r, b);
     }
 }
