@@ -74,7 +74,7 @@ fn main() {
 
     let mut write = !args.dry_run;
 
-    let default_file_path = PathBuf::from("bookcase.booktop.json");
+    let default_file_path = PathBuf::from("bookcase.booktop.yaml");
 
     let mut file_path = match args.file {
         Some(path) => Some(path),

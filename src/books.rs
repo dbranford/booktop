@@ -52,11 +52,11 @@ impl Bookcase {
     }
     pub fn open(path: &PathBuf) -> Bookcase {
         let _file = File::open(path).expect("Could not open file");
-        serde_json::from_reader(_file).expect("Couldn't extract bookcase")
+        serde_yaml::from_reader(_file).expect("Couldn't extract bookcase")
     }
     pub fn close(&self, path: &PathBuf) -> () {
         let _file = File::create(path).expect("Could not open file");
-        serde_json::to_writer(_file, self).expect("Could not write to file");
+        serde_yaml::to_writer(_file, self).expect("Could not write to file");
     }
     pub fn list(&mut self) -> () {
         println!("Bookcase: {}", self.name);
