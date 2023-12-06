@@ -19,10 +19,18 @@ impl fmt::Display for Read {
         }
     }
 }
+
+impl Default for Read {
+    fn default() -> Self {
+        Read::Unread
+    }
+}
+
 #[derive(Eq, PartialEq, Debug, Deserialize, Serialize)]
 pub struct Book {
     pub title: String,
     author: String,
+    #[serde(default)]
     read: Read,
 }
 
@@ -80,9 +88,15 @@ mod tests {
     #[test]
     fn deserialize() {
         let b = test_book();
-        let s = "title: Titular Title\nauthor: Authoritative Author\nread: Unread\n";
 
-        let r: Book = serde_yaml::from_str(s).unwrap();
+        let r: Book =
+            serde_yaml::from_str("title: Titular Title\nauthor: Authoritative Author\n").unwrap();
+        assert_eq!(r, b);
+
+        let r: Book = serde_yaml::from_str(
+            "title: Titular Title\nauthor: Authoritative Author\nread: Unread\n",
+        )
+        .unwrap();
         assert_eq!(r, b);
     }
 }
