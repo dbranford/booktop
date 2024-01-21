@@ -37,7 +37,7 @@ impl BookQuery {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Bookcase {
-    name: String,
+    pub name: String,
     pub books: BTreeMap<usize, Book>,
     version: Version,
 }
@@ -57,13 +57,6 @@ impl Bookcase {
     pub fn close(&self, path: &PathBuf) -> () {
         let _file = File::create(path).expect("Could not open file");
         serde_yaml::to_writer(_file, self).expect("Could not write to file");
-    }
-    pub fn list(&mut self) -> () {
-        println!("Bookcase: {}", self.name);
-        println!("========================================");
-        for (id, bk) in &self.books {
-            println!("{}: {}", id, bk);
-        }
     }
     pub fn add_book(&mut self, title: String, author: String) -> () {
         let key = match self.books.keys().max() {
@@ -89,6 +82,9 @@ impl Bookcase {
                 None => None,
             },
         }
+    }
+    pub fn get_books(&self) -> impl IntoIterator<Item = (&usize, &Book)> {
+        &self.books
     }
     pub fn pick_book(&self) -> (&usize, &Book) {
         let mut rng = rand::thread_rng();

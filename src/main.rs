@@ -69,6 +69,14 @@ enum UtilCommands {
     Renumber,
 }
 
+fn list(books: &books::Bookcase) -> () {
+    println!("Bookcase: {}", books.name);
+    println!("========================================");
+    for (id, bk) in books.get_books() {
+        println!("{}: {}", id, bk);
+    }
+}
+
 fn main() {
     let args = Cli::parse();
 
@@ -98,9 +106,7 @@ fn main() {
             File::create(&path).expect("Could not create file");
             file_path = Some(path);
         }
-        Commands::List {} => {
-            books.list();
-        }
+        Commands::List {} => list(&books),
         Commands::Remove { id } => {
             books.remove_book(id);
         }
@@ -135,14 +141,14 @@ fn main() {
                 UtilCommands::ExampleBookcase {} => books = util::example_bookcase(),
                 UtilCommands::Renumber {} => {
                     books.util_renumber();
-                    books.list()
+                    list(&books)
                 }
             }
         }
     }
 
     if args.list {
-        books.list();
+        list(&books)
     }
 
     if write {
