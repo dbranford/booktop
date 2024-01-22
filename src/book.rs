@@ -29,7 +29,7 @@ impl Default for Read {
 #[derive(Eq, PartialEq, Debug, Deserialize, Serialize)]
 pub struct Book {
     pub title: String,
-    author: String,
+    pub author: String,
     #[serde(default)]
     read: Read,
 }
