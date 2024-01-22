@@ -5,7 +5,7 @@ use semver::Version;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::fs::File;
-use std::path::PathBuf;
+use std::path::Path;
 
 #[derive(Debug)]
 enum BookArg {
@@ -50,11 +50,11 @@ impl Bookcase {
             version: Version::parse("0.0.1").unwrap(),
         }
     }
-    pub fn open(path: &PathBuf) -> Bookcase {
+    pub fn open<P: AsRef<Path>>(path: P) -> Bookcase {
         let _file = File::open(path).expect("Could not open file");
         serde_yaml::from_reader(_file).expect("Couldn't extract bookcase")
     }
-    pub fn close(&self, path: &PathBuf) -> () {
+    pub fn close<P: AsRef<Path>>(&self, path: P) -> () {
         let _file = File::create(path).expect("Could not open file");
         serde_yaml::to_writer(_file, self).expect("Could not write to file");
     }
