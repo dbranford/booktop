@@ -3,6 +3,7 @@ use std::fs::File;
 use std::path::PathBuf;
 mod book;
 mod books;
+mod tui;
 mod util;
 
 #[derive(Debug, Parser)]
@@ -50,6 +51,8 @@ enum Commands {
     Reset(books::BookQuery),
     /// Use a utility function
     Util(Util),
+    /// Start UI
+    Tui { file: Option<PathBuf> },
 }
 
 #[derive(Debug, Args)]
@@ -144,6 +147,12 @@ fn main() {
                     list(&books)
                 }
             }
+        }
+        Commands::Tui { file } => {
+            if let Some(file) = file {
+                books = books::Bookcase::open(&file)
+            };
+            tui::start_tui(&books).ok();
         }
     }
 
