@@ -1,10 +1,10 @@
 use crate::book::Book;
 use crate::books::Bookcase;
+use ratatui::backend::CrosstermBackend;
+use ratatui::layout::{Constraint, Direction, Layout};
+use ratatui::widgets::{Cell, Paragraph, Row, Table};
+use ratatui::{Frame, Terminal};
 use std::io;
-use tui::backend::{Backend, CrosstermBackend};
-use tui::layout::{Constraint, Direction, Layout};
-use tui::widgets::{Cell, Paragraph, Row, Table};
-use tui::{Frame, Terminal};
 
 pub fn start_tui(books: &Bookcase) -> Result<(), io::Error> {
     let stdout = io::stdout();
@@ -18,25 +18,26 @@ pub fn start_tui(books: &Bookcase) -> Result<(), io::Error> {
     }
 }
 
-fn draw<B>(rect: &mut Frame<B>, books: &Bookcase)
-where
-    B: Backend,
-{
+fn draw(rect: &mut Frame, books: &Bookcase) {
     let size = rect.size();
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(1), Constraint::Min(2)].as_ref())
-        .split(size);
+    let chunks = Layout::new(
+        Direction::Vertical,
+        [Constraint::Length(1), Constraint::Min(2)],
+    )
+    .split(size);
 
     let title = Paragraph::new("Booktop");
 
     let rows = books.get_books().into_iter().map(|b| row_from_book(b));
 
-    let contents = Table::new(rows).widths(&[
-        Constraint::Length(3),
-        Constraint::Length(30),
-        Constraint::Length(30),
-    ]);
+    let contents = Table::new(
+        rows,
+        [
+            Constraint::Length(3),
+            Constraint::Length(30),
+            Constraint::Length(30),
+        ],
+    );
 
     rect.render_widget(title, chunks[0]);
     rect.render_widget(contents, chunks[1]);
