@@ -152,7 +152,7 @@ fn main() {
             if let Some(file) = file {
                 books = books::Bookcase::open(&file)
             };
-            tui::start_tui(&books).ok();
+            tui::start_tui(&mut books).ok();
         }
     }
 
