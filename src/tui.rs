@@ -10,6 +10,7 @@ use ratatui::{
     widgets::{Cell, Paragraph, Row, Table, TableState},
     Frame, Terminal,
 };
+use std::cmp::Ordering;
 use std::io;
 
 struct App<'b> {
@@ -34,15 +35,14 @@ impl<'b> App<'b> {
         }
     }
     fn move_to(self: &mut Self, i: isize) {
-        match i {
-            i if i < 0 => self
+        match i.cmp(&0) {
+            Ordering::Less => self
                 .state
                 .select(Some(self.bookcase.books.len().saturating_add_signed(i))),
-            i if i == 0 => self.state.select(Some(0)),
-            i if i > 0 => self.state.select(Some(
+            Ordering::Equal => self.state.select(Some(0)),
+            Ordering::Greater => self.state.select(Some(
                 usize::try_from(i - 1).expect("usize::try_from(i-1) on an i > 0 gated isize"),
             )),
-            _ => unreachable!(),
         }
     }
 }
