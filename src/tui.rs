@@ -33,6 +33,16 @@ impl<'b> App<'b> {
             }
         }
     }
+    fn move_to(self: &mut Self, i: isize) {
+        match i {
+            i if i < 0 => self
+                .state
+                .select(Some(self.bookcase.books.len().saturating_add_signed(i))),
+            i if i == 0 => self.state.select(Some(0)),
+            i if i > 0 => self.state.select(Some(usize::try_from(i - 1).unwrap())),
+            _ => unreachable!(),
+        }
+    }
 }
 
 pub fn start_tui(books: &mut Bookcase) -> Result<(), io::Error> {
@@ -64,6 +74,7 @@ fn run_tui<B: Backend>(terminal: &mut Terminal<B>, mut app: &mut App) -> Result<
                         Char('q') | Esc => return Ok(()),
                         Char('j') | Down => app.move_by(1),
                         Char('k') | Up => app.move_by(-1),
+                        Char('G') => app.move_to(-1),
                         _ => {}
                     }
                 }
