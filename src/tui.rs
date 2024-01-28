@@ -1,10 +1,15 @@
-use crate::book::Book;
-use crate::books::Bookcase;
-use ratatui::backend::CrosstermBackend;
-use ratatui::layout::{Constraint, Direction, Layout};
-use ratatui::style::{Color, Style};
-use ratatui::widgets::{Cell, Paragraph, Row, Table, TableState};
-use ratatui::{Frame, Terminal};
+use crate::{book::Book, books::Bookcase};
+use crossterm::{
+    event::{self, Event, KeyCode, KeyEventKind},
+    terminal::{disable_raw_mode, enable_raw_mode},
+};
+use ratatui::{
+    backend::{Backend, CrosstermBackend},
+    layout::{Constraint, Direction, Layout},
+    style::{Color, Style},
+    widgets::{Cell, Paragraph, Row, Table, TableState},
+    Frame, Terminal,
+};
 use std::io;
 
 struct App<'b> {
@@ -19,19 +24,51 @@ impl<'b> App<'b> {
             state: TableState::default().with_selected(Some(0)),
         }
     }
+    fn move_by(self: &mut Self, δ: isize) {
+        if let Some(i) = self.state.selected() {
+            if i.saturating_add_signed(δ) >= self.bookcase.books.len() {
+                self.state.select(Some(self.bookcase.books.len() - 1))
+            } else {
+                self.state.select(Some(i.saturating_add_signed(δ)))
+            }
+        }
+    }
 }
 
 pub fn start_tui(books: &mut Bookcase) -> Result<(), io::Error> {
+    enable_raw_mode()?;
     let stdout = io::stdout();
     let backend = CrosstermBackend::new(stdout);
+
     let mut terminal = Terminal::new(backend)?;
+    terminal.clear()?;
 
     let mut app = App::new(books);
 
-    terminal.clear()?;
+    run_tui(&mut terminal, &mut app)?;
 
+    disable_raw_mode()?;
+
+    Ok(())
+}
+
+fn run_tui<B: Backend>(terminal: &mut Terminal<B>, mut app: &mut App) -> Result<(), io::Error> {
     loop {
         terminal.draw(|rect| draw(rect, &mut app))?;
+
+        if event::poll(std::time::Duration::from_millis(100))? {
+            if let Event::Key(key) = event::read()? {
+                if key.kind == KeyEventKind::Press {
+                    use KeyCode::*;
+                    match key.code {
+                        Char('q') | Esc => return Ok(()),
+                        Char('j') | Down => app.move_by(1),
+                        Char('k') | Up => app.move_by(-1),
+                        _ => {}
+                    }
+                }
+            }
+        }
     }
 }
 
