@@ -39,7 +39,9 @@ impl<'b> App<'b> {
                 .state
                 .select(Some(self.bookcase.books.len().saturating_add_signed(i))),
             i if i == 0 => self.state.select(Some(0)),
-            i if i > 0 => self.state.select(Some(usize::try_from(i - 1).unwrap())),
+            i if i > 0 => self.state.select(Some(
+                usize::try_from(i - 1).expect("usize::try_from(i-1) on an i > 0 gated isize"),
+            )),
             _ => unreachable!(),
         }
     }
