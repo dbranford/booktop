@@ -118,7 +118,7 @@ fn draw(rect: &mut Frame, app: &mut App) {
 fn row_from_book<'b>((i, b): (&'b usize, &'b Book)) -> Row {
     Row::new(vec![
         Cell::from(i.to_string()),
-        Cell::from(b.title.clone()),
-        Cell::from(b.author.clone()),
+        Cell::from(b.title.as_str()),
+        Cell::from(b.author.as_str()),
     ])
 }
