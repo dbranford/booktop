@@ -1,11 +1,12 @@
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
-#[derive(Eq, PartialEq, Debug, Deserialize, Serialize)]
+#[derive(Eq, PartialEq, Debug, Default, Deserialize, Serialize)]
 enum Read {
     Read,
     Reading,
     Stopped,
+    #[default]
     Unread,
 }
 
@@ -17,12 +18,6 @@ impl fmt::Display for Read {
             Read::Stopped => write!(f, "Stopped"),
             Read::Unread => write!(f, "Unread"),
         }
-    }
-}
-
-impl Default for Read {
-    fn default() -> Self {
-        Read::Unread
     }
 }
 
