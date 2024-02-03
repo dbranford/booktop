@@ -1,4 +1,4 @@
-use crate::{book::Book, books::Bookcase};
+use crate::{book::Book, books::Bookcase, filter::Filter};
 use crossterm::{
     event::{self, Event, KeyCode, KeyEventKind},
     terminal::{disable_raw_mode, enable_raw_mode},
@@ -47,6 +47,19 @@ impl<'b> App<'b> {
             )),
         }
     }
+    fn filter_currently_visible(self: &mut Self, filter: &Filter) {
+        let matches = filter.filter_books(
+            self.bookcase
+                .books
+                .iter()
+                .filter(|(k, _)| self.visible_books.contains(k))
+                .collect(),
+        );
+        self.visible_books = matches.map(|(&u, _)| u).collect()
+    }
+    fn reset_visible(self: &mut Self) {
+        self.visible_books = self.bookcase.books.keys().cloned().collect()
+    }
 }
 
 pub fn start_tui(books: &mut Bookcase) -> Result<(), io::Error> {
@@ -79,6 +92,10 @@ fn run_tui<B: Backend>(terminal: &mut Terminal<B>, mut app: &mut App) -> Result<
                         Char('j') | Down => app.move_by(1),
                         Char('k') | Up => app.move_by(-1),
                         Char('G') => app.move_to(-1),
+                        Char('f') => app.filter_currently_visible(&Filter {
+                            author_match: Vec::from(["Iain M. Banks".to_string()]),
+                        }),
+                        Char('F') => app.reset_visible(),
                         _ => {}
                     }
                 }

@@ -3,6 +3,7 @@ use std::fs::File;
 use std::path::PathBuf;
 mod book;
 mod books;
+mod filter;
 mod tui;
 mod util;
 
