@@ -5,26 +5,33 @@ use crossterm::{
 };
 use ratatui::{
     backend::{Backend, CrosstermBackend},
-    layout::{Constraint, Direction, Layout},
+    layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
-    widgets::{Cell, Paragraph, Row, Table, TableState},
+    widgets::{Block, Borders, Cell, Paragraph, Row, Table, TableState},
     Frame, Terminal,
 };
 use std::cmp::Ordering;
 use std::io;
 
+#[derive(Debug)]
+enum Popup {
+    Filter,
+}
+
 struct App<'b> {
     bookcase: &'b Bookcase,
-    state: TableState,
+    popup: Option<Popup>,
     visible_books: Vec<usize>,
+    state: TableState,
 }
 
 impl<'b> App<'b> {
     fn new(bookcase: &'b Bookcase) -> App {
         App {
             bookcase,
-            state: TableState::default().with_selected(Some(0)),
+            popup: None,
             visible_books: bookcase.books.keys().cloned().collect(),
+            state: TableState::default().with_selected(Some(0)),
         }
     }
     fn move_by(self: &mut Self, δ: isize) {
@@ -81,6 +88,18 @@ pub fn start_tui(books: &mut Bookcase) -> Result<(), io::Error> {
 
 fn run_tui<B: Backend>(terminal: &mut Terminal<B>, mut app: &mut App) -> Result<(), io::Error> {
     loop {
+        if let Some(p) = &app.popup {
+            match p {
+                Popup::Filter => {
+                    let f = run_popup_filter(terminal)?;
+                    if let Some(f) = f {
+                        app.filter_currently_visible(&f)
+                    }
+                }
+            }
+            app.popup = None
+        }
+
         terminal.draw(|rect| draw(rect, &mut app))?;
 
         if event::poll(std::time::Duration::from_millis(100))? {
@@ -92,9 +111,7 @@ fn run_tui<B: Backend>(terminal: &mut Terminal<B>, mut app: &mut App) -> Result<
                         Char('j') | Down => app.move_by(1),
                         Char('k') | Up => app.move_by(-1),
                         Char('G') => app.move_to(-1),
-                        Char('f') => app.filter_currently_visible(&Filter {
-                            author_match: Vec::from(["Iain M. Banks".to_string()]),
-                        }),
+                        Char('f') => app.popup = Some(Popup::Filter),
                         Char('F') => app.reset_visible(),
                         _ => {}
                     }
@@ -143,4 +160,99 @@ fn row_from_book<'b>((i, b): (&'b usize, &'b Book)) -> Row {
         Cell::from(b.title.as_str()),
         Cell::from(b.author.as_str()),
     ])
+}
+
+enum FilterPopupField {
+    Author,
+}
+
+struct FilterPopupApp {
+    author: String,
+    current_field: FilterPopupField,
+}
+
+impl FilterPopupApp {
+    fn new() -> Self {
+        FilterPopupApp {
+            author: String::new(),
+            current_field: FilterPopupField::Author,
+        }
+    }
+    fn backspace(&mut self) {
+        match self.current_field {
+            FilterPopupField::Author => self.author.pop(),
+        };
+    }
+    fn tab(&mut self) {
+        match self.current_field {
+            FilterPopupField::Author => (),
+        }
+    }
+    fn input(&mut self, value: char) {
+        match self.current_field {
+            FilterPopupField::Author => self.author.push(value),
+        }
+    }
+    fn to_filter(self) -> Filter {
+        Filter {
+            author_match: Vec::from([self.author]),
+        }
+    }
+}
+
+fn run_popup_filter<B: Backend>(terminal: &mut Terminal<B>) -> Result<Option<Filter>, io::Error> {
+    let mut app_popup = FilterPopupApp::new();
+    loop {
+        terminal.draw(|rect| draw_popup_filter(rect, &mut app_popup))?;
+        if event::poll(std::time::Duration::from_millis(100))? {
+            if let Event::Key(key) = event::read()? {
+                if key.kind == KeyEventKind::Press {
+                    use KeyCode::*;
+                    match key.code {
+                        Enter => return Ok(Some(app_popup.to_filter())),
+                        Esc => return Ok(None),
+                        Backspace | Delete => app_popup.backspace(),
+                        Tab => app_popup.tab(),
+                        Char(value) => app_popup.input(value),
+                        _ => {}
+                    }
+                }
+            }
+        }
+    }
+}
+fn draw_popup_filter(f: &mut Frame, app: &mut FilterPopupApp) {
+    let area = popup_rect(80, 80, f.size());
+
+    let popup_block = ratatui::widgets::Block::default().title("Apply filter");
+    f.render_widget(popup_block, area);
+
+    let popup_filter_layout_vertical = Layout::new(Direction::Vertical, [Constraint::Length(1)]);
+    let popup_filter_layout = popup_filter_layout_vertical.split(area);
+
+    let author_block = Block::default().title("Author").borders(Borders::ALL);
+    let author_text = Paragraph::new(app.author.clone()).block(author_block);
+
+    f.render_widget(author_text, popup_filter_layout[0])
+}
+
+fn popup_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+    let popup_layout = Layout::new(
+        Direction::Vertical,
+        [
+            Constraint::Percentage((100 - percent_y) / 2),
+            Constraint::Percentage(percent_y),
+            Constraint::Percentage((100 - percent_y) / 2),
+        ],
+    )
+    .split(r);
+    Layout::new(
+        Direction::Horizontal,
+        [
+            Constraint::Percentage((100 - percent_x) / 2),
+            Constraint::Percentage(percent_x),
+            Constraint::Percentage((100 - percent_x) / 2),
+        ],
+    )
+    .split(popup_layout[1])[1]
 }

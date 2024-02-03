@@ -12,7 +12,7 @@ impl Filter {
             .any(|a| string_match(a, &book.author))
     }
     pub fn filter_books<'b, T>(
-        self: &'b Self,
+        &'b self,
         books: Vec<(&'b T, &'b Book)>,
     ) -> impl Iterator<Item = (&T, &Book)> {
         books.into_iter().filter(|&(_, b)| self.match_book(b))
