@@ -16,6 +16,7 @@ use std::io;
 struct App<'b> {
     bookcase: &'b Bookcase,
     state: TableState,
+    visible_books: Vec<usize>,
 }
 
 impl<'b> App<'b> {
@@ -23,12 +24,13 @@ impl<'b> App<'b> {
         App {
             bookcase,
             state: TableState::default().with_selected(Some(0)),
+            visible_books: bookcase.books.keys().cloned().collect(),
         }
     }
     fn move_by(self: &mut Self, δ: isize) {
         if let Some(i) = self.state.selected() {
-            if i.saturating_add_signed(δ) >= self.bookcase.books.len() {
-                self.state.select(Some(self.bookcase.books.len() - 1))
+            if i.saturating_add_signed(δ) >= self.visible_books.len() {
+                self.state.select(Some(self.visible_books.len() - 1))
             } else {
                 self.state.select(Some(i.saturating_add_signed(δ)))
             }
@@ -38,7 +40,7 @@ impl<'b> App<'b> {
         match i.cmp(&0) {
             Ordering::Less => self
                 .state
-                .select(Some(self.bookcase.books.len().saturating_add_signed(i))),
+                .select(Some(self.visible_books.len().saturating_add_signed(i))),
             Ordering::Equal => self.state.select(Some(0)),
             Ordering::Greater => self.state.select(Some(
                 usize::try_from(i - 1).expect("usize::try_from(i-1) on an i > 0 gated isize"),
@@ -101,6 +103,7 @@ fn draw(rect: &mut Frame, app: &mut App) {
         .bookcase
         .get_books()
         .into_iter()
+        .filter(|(u, _)| app.visible_books.contains(u))
         .map(|b| row_from_book(b));
 
     let contents = Table::new(
