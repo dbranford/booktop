@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 
 #[derive(Eq, PartialEq, Debug, Default, Deserialize, Serialize)]
-enum Read {
+pub enum Read {
     Read,
     Reading,
     Stopped,
@@ -17,6 +17,17 @@ impl fmt::Display for Read {
             Read::Reading => write!(f, "Reading"),
             Read::Stopped => write!(f, "Stopped"),
             Read::Unread => write!(f, "Unread"),
+        }
+    }
+}
+
+impl Read {
+    pub fn symbol(&self) -> char {
+        match self {
+            Read::Read => 'F',    //'📕',
+            Read::Reading => 'R', //'📖',
+            Read::Unread => 'U',  //'📚',
+            Read::Stopped => 'S', //'🔖',
         }
     }
 }
@@ -48,6 +59,9 @@ impl Book {
     }
     pub fn reset(&mut self) {
         self.read = Read::Unread
+    }
+    pub fn read_state(&self) -> &Read {
+        &self.read
     }
 }
 

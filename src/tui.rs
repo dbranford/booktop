@@ -144,6 +144,7 @@ fn draw(rect: &mut Frame, app: &mut App) {
         rows,
         [
             Constraint::Length(3),
+            Constraint::Min(1),
             Constraint::Length(30),
             Constraint::Length(30),
         ],
@@ -157,6 +158,7 @@ fn draw(rect: &mut Frame, app: &mut App) {
 fn row_from_book<'b>((i, b): (&'b usize, &'b Book)) -> Row {
     Row::new(vec![
         Cell::from(i.to_string()),
+        Cell::from(b.read_state().symbol().to_string()),
         Cell::from(b.title.as_str()),
         Cell::from(b.author.as_str()),
     ])
