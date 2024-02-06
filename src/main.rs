@@ -43,13 +43,13 @@ enum Commands {
     /// Pick a book at random
     Pick {},
     /// Start reading a book
-    Start(books::BookQuery),
+    Start { id: usize },
     /// Finish reading a book
-    Finish(books::BookQuery),
+    Finish { id: usize },
     /// Pause reading a book
-    Stop(books::BookQuery),
+    Stop { id: usize },
     /// Return a book to unread
-    Reset(books::BookQuery),
+    Reset { id: usize },
     /// Use a utility function
     Util(Util),
     /// Start UI
@@ -119,23 +119,23 @@ fn main() {
             println!("{} | {}", picked.0, picked.1)
         }
         // Book operations
-        Commands::Finish(bookquery) => {
-            if let Some(book) = books.get_mut_book(bookquery) {
+        Commands::Finish { id } => {
+            if let Some(book) = books.get_mut_book(id) {
                 book.finish();
             }
         }
-        Commands::Start(bookquery) => {
-            if let Some(book) = books.get_mut_book(bookquery) {
+        Commands::Start { id } => {
+            if let Some(book) = books.get_mut_book(id) {
                 book.start();
             }
         }
-        Commands::Reset(bookquery) => {
-            if let Some(book) = books.get_mut_book(bookquery) {
+        Commands::Reset { id } => {
+            if let Some(book) = books.get_mut_book(id) {
                 book.reset()
             }
         }
-        Commands::Stop(bookquery) => {
-            if let Some(book) = books.get_mut_book(bookquery) {
+        Commands::Stop { id } => {
+            if let Some(book) = books.get_mut_book(id) {
                 book.stop()
             }
         }
