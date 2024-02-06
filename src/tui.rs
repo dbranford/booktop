@@ -25,6 +25,7 @@ fn move_by(i: usize, δ: isize, l: usize) -> usize {
 
 #[derive(Debug)]
 enum Popup {
+    Book,
     Filter,
 }
 
@@ -103,6 +104,13 @@ fn run_tui<B: Backend>(terminal: &mut Terminal<B>, mut app: &mut App) -> Result<
                         app.filter_currently_visible(&f)
                     }
                 }
+                Popup::Book => {
+                    if let Some(i) = app.state.selected() {
+                        if let Some(b) = app.bookcase.get_book(app.visible_books[i]) {
+                            run_popup_book(terminal, b)?;
+                        }
+                    }
+                }
             }
             app.popup = None
         }
@@ -120,6 +128,7 @@ fn run_tui<B: Backend>(terminal: &mut Terminal<B>, mut app: &mut App) -> Result<
                         Char('G') => app.move_to(-1),
                         Char('f') => app.popup = Some(Popup::Filter),
                         Char('F') => app.reset_visible(),
+                        Enter => app.popup = Some(Popup::Book),
                         _ => {}
                     }
                 }
@@ -352,4 +361,60 @@ fn popup_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
         ],
     )
     .split(popup_layout[1])[1]
+}
+
+struct BookPopupApp<'b> {
+    book: &'b Book,
+}
+
+impl<'b> BookPopupApp<'b> {
+    fn new(book: &'b Book) -> Self {
+        BookPopupApp { book }
+    }
+}
+
+fn run_popup_book<'b, B: Backend>(
+    terminal: &mut Terminal<B>,
+    book: &'b Book,
+) -> Result<(), io::Error> {
+    let mut app_popup = BookPopupApp::new(book);
+    loop {
+        terminal.draw(|rect| draw_popup_book(rect, &mut app_popup))?;
+        if event::poll(std::time::Duration::from_millis(100))? {
+            if let Event::Key(key) = event::read()? {
+                if key.kind == KeyEventKind::Press {
+                    use KeyCode::*;
+                    match key.code {
+                        Esc => return Ok(()),
+                        _ => {}
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn draw_popup_book(f: &mut Frame, app: &mut BookPopupApp) {
+    let area = popup_rect(80, 80, f.size());
+
+    let popup_block = ratatui::widgets::Block::default().title("Book");
+    f.render_widget(popup_block, area);
+
+    let popup_filter_layout_vertical = Layout::new(
+        Direction::Vertical,
+        [Constraint::Min(4), Constraint::Min(4), Constraint::Min(4)],
+    );
+    let popup_filter_layout = popup_filter_layout_vertical.split(area);
+
+    let title_block = Block::default().title("Title").borders(Borders::ALL);
+    let title = Paragraph::new(app.book.title.as_str()).block(title_block);
+    f.render_widget(title, popup_filter_layout[0]);
+
+    let author_block = Block::default().title("Author").borders(Borders::ALL);
+    let author = Paragraph::new(app.book.author.as_str()).block(author_block);
+    f.render_widget(author, popup_filter_layout[1]);
+
+    let read_block = Block::default().title("Read").borders(Borders::ALL);
+    let read = Paragraph::new(app.book.read_state().to_string()).block(read_block);
+    f.render_widget(read, popup_filter_layout[2]);
 }
