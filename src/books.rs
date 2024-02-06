@@ -83,6 +83,11 @@ impl Bookcase {
     pub fn get_books(&self) -> impl IntoIterator<Item = (&usize, &Book)> {
         &self.books
     }
+    pub fn get_authors(&self) -> Vec<&str> {
+        let mut authors: Vec<&str> = self.books.iter().map(|(_, b)| b.author.as_str()).collect();
+        authors.dedup();
+        authors
+    }
     pub fn pick_book(&self) -> (&usize, &Book) {
         let mut rng = rand::thread_rng();
         match self.books.iter().choose(&mut rng) {

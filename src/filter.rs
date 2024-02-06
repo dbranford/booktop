@@ -2,12 +2,12 @@ use crate::book::{Book, Read};
 use std::collections::HashSet;
 
 #[derive(Debug)]
-pub struct Filter {
-    pub author_match: Vec<String>,
+pub struct Filter<'f> {
+    pub author_match: Vec<&'f str>,
     pub read: HashSet<Read>,
 }
 
-impl Filter {
+impl<'f> Filter<'f> {
     fn match_book(self: &Self, book: &Book) -> bool {
         self.author_match
             .iter()
