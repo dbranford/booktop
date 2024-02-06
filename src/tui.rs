@@ -249,6 +249,20 @@ impl<'b> FilterPopupApp<'b> {
             }
         }
     }
+    fn deselect(&mut self) {
+        match self.current_field {
+            FilterPopupField::Author => {
+                if let Some(i) = self.authors_state.selected() {
+                    self.authors[i] = false;
+                }
+            }
+            FilterPopupField::Read => {
+                if let Some(i) = self.read_state.selected() {
+                    self.read[i] = false;
+                }
+            }
+        }
+    }
     fn switch_fields(&mut self, new_field: FilterPopupField) {
         match self.current_field {
             FilterPopupField::Author => self.authors_state.select(None),
@@ -291,7 +305,7 @@ fn run_popup_filter<'f, B: Backend>(
                         Up => app_popup.move_by(-1),
                         Down => app_popup.move_by(1),
                         Esc => return Ok(None),
-                        // Backspace | Delete => app_popup.backspace(),
+                        Backspace | Delete => app_popup.deselect(),
                         Tab => app_popup.tab(),
                         Left | Right => app_popup.toggle(),
                         _ => {}
