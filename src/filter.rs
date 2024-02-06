@@ -1,8 +1,10 @@
-use crate::book::Book;
+use crate::book::{Book, Read};
+use std::collections::HashSet;
 
 #[derive(Debug)]
 pub struct Filter {
     pub author_match: Vec<String>,
+    pub read: HashSet<Read>,
 }
 
 impl Filter {
@@ -10,6 +12,7 @@ impl Filter {
         self.author_match
             .iter()
             .any(|a| string_match(a, &book.author))
+            && self.read.contains(book.read_state())
     }
     pub fn filter_books<'b, T>(
         &'b self,

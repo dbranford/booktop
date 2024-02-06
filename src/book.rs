@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
-#[derive(Eq, PartialEq, Debug, Default, Deserialize, Serialize)]
+#[derive(Eq, PartialEq, Debug, Default, Hash, Deserialize, Serialize)]
 pub enum Read {
     Read,
     Reading,
@@ -22,6 +22,9 @@ impl fmt::Display for Read {
 }
 
 impl Read {
+    pub const fn all() -> [Read; 4] {
+        [Read::Read, Read::Reading, Read::Stopped, Read::Unread]
+    }
     pub fn symbol(&self) -> char {
         match self {
             Read::Read => 'F',    //'📕',

@@ -1,4 +1,8 @@
-use crate::{book::Book, books::Bookcase, filter::Filter};
+use crate::{
+    book::{Book, Read},
+    books::Bookcase,
+    filter::Filter,
+};
 use crossterm::{
     event::{self, Event, KeyCode, KeyEventKind},
     terminal::{disable_raw_mode, enable_raw_mode},
@@ -7,11 +11,17 @@ use ratatui::{
     backend::{Backend, CrosstermBackend},
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
-    widgets::{Block, Borders, Cell, Paragraph, Row, Table, TableState},
+    widgets::{Block, Borders, Cell, List, ListState, Paragraph, Row, Table, TableState},
     Frame, Terminal,
 };
-use std::cmp::Ordering;
-use std::io;
+use std::{cmp::Ordering, io, iter::zip};
+
+fn move_by(i: usize, δ: isize, l: usize) -> usize {
+    match i.saturating_add_signed(δ) >= l {
+        true => l - 1,
+        false => i.saturating_add_signed(δ),
+    }
+}
 
 #[derive(Debug)]
 enum Popup {
@@ -36,11 +46,8 @@ impl<'b> App<'b> {
     }
     fn move_by(self: &mut Self, δ: isize) {
         if let Some(i) = self.state.selected() {
-            if i.saturating_add_signed(δ) >= self.visible_books.len() {
-                self.state.select(Some(self.visible_books.len() - 1))
-            } else {
-                self.state.select(Some(i.saturating_add_signed(δ)))
-            }
+            let j = move_by(i, δ, self.visible_books.len());
+            self.state.select(Some(j))
         }
     }
     fn move_to(self: &mut Self, i: isize) {
@@ -166,10 +173,23 @@ fn row_from_book<'b>((i, b): (&'b usize, &'b Book)) -> Row {
 
 enum FilterPopupField {
     Author,
+    Read,
+}
+
+impl FilterPopupField {
+    fn next(&self) -> Self {
+        use FilterPopupField::*;
+        match self {
+            Read => Author,
+            Author => Read,
+        }
+    }
 }
 
 struct FilterPopupApp {
     author: String,
+    read: [bool; Read::all().len()],
+    read_state: ListState,
     current_field: FilterPopupField,
 }
 
@@ -177,27 +197,68 @@ impl FilterPopupApp {
     fn new() -> Self {
         FilterPopupApp {
             author: String::new(),
+            read: [false; Read::all().len()],
+            read_state: ListState::default(),
             current_field: FilterPopupField::Author,
+        }
+    }
+    fn move_by(&mut self, δ: isize) {
+        match self.current_field {
+            FilterPopupField::Read => {
+                const READ_NO: usize = Read::all().len();
+                if let Some(i) = self.read_state.selected() {
+                    let j = move_by(i, δ, READ_NO);
+                    self.read_state.select(Some(j))
+                }
+            }
+            _ => {}
+        }
+    }
+    fn toggle(&mut self) {
+        match self.current_field {
+            FilterPopupField::Author => {}
+            FilterPopupField::Read => {
+                if let Some(i) = self.read_state.selected() {
+                    self.read[i] = !self.read[i];
+                }
+            }
+        }
+    }
+    fn switch_fields(&mut self, new_field: FilterPopupField) {
+        match self.current_field {
+            FilterPopupField::Author => {}
+            FilterPopupField::Read => self.read_state.select(None),
+        }
+        self.current_field = new_field;
+        match self.current_field {
+            FilterPopupField::Author => {}
+            FilterPopupField::Read => self.read_state.select(Some(0)),
         }
     }
     fn backspace(&mut self) {
         match self.current_field {
-            FilterPopupField::Author => self.author.pop(),
+            FilterPopupField::Author => {
+                self.author.pop();
+            }
+            FilterPopupField::Read => {}
         };
     }
     fn tab(&mut self) {
-        match self.current_field {
-            FilterPopupField::Author => (),
-        }
+        self.switch_fields(self.current_field.next())
     }
     fn input(&mut self, value: char) {
         match self.current_field {
             FilterPopupField::Author => self.author.push(value),
+            _ => (),
         }
     }
     fn to_filter(self) -> Filter {
         Filter {
             author_match: Vec::from([self.author]),
+            read: zip(self.read, Read::all())
+                .filter(|(b, _)| *b)
+                .map(|(_, r)| r)
+                .collect(),
         }
     }
 }
@@ -212,9 +273,12 @@ fn run_popup_filter<B: Backend>(terminal: &mut Terminal<B>) -> Result<Option<Fil
                     use KeyCode::*;
                     match key.code {
                         Enter => return Ok(Some(app_popup.to_filter())),
+                        Up => app_popup.move_by(-1),
+                        Down => app_popup.move_by(1),
                         Esc => return Ok(None),
                         Backspace | Delete => app_popup.backspace(),
                         Tab => app_popup.tab(),
+                        Left | Right => app_popup.toggle(),
                         Char(value) => app_popup.input(value),
                         _ => {}
                     }
@@ -229,13 +293,29 @@ fn draw_popup_filter(f: &mut Frame, app: &mut FilterPopupApp) {
     let popup_block = ratatui::widgets::Block::default().title("Apply filter");
     f.render_widget(popup_block, area);
 
-    let popup_filter_layout_vertical = Layout::new(Direction::Vertical, [Constraint::Length(1)]);
+    let highlight_style = Style::default().fg(Color::Yellow);
+
+    let popup_filter_layout_vertical = Layout::new(
+        Direction::Vertical,
+        [Constraint::Min(1), Constraint::Length(4)],
+    );
     let popup_filter_layout = popup_filter_layout_vertical.split(area);
 
     let author_block = Block::default().title("Author").borders(Borders::ALL);
     let author_text = Paragraph::new(app.author.clone()).block(author_block);
+    f.render_widget(author_text, popup_filter_layout[0]);
 
-    f.render_widget(author_text, popup_filter_layout[0])
+    let read_block = Block::default().title("Read").borders(Borders::ALL);
+    let read_list = List::new(Read::all().into_iter().enumerate().map(|(i, r)| {
+        let selected = match app.read[i] {
+            true => "X",
+            false => " ",
+        };
+        format!("[{selected}] {r}")
+    }))
+    .block(read_block)
+    .highlight_style(highlight_style);
+    f.render_stateful_widget(read_list, popup_filter_layout[1], &mut app.read_state);
 }
 
 fn popup_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
