@@ -193,9 +193,11 @@ impl FilterPopupField {
 
 struct FilterPopupApp<'b> {
     authors: Vec<bool>,
+    author_selected: usize,
     authors_state: ListState,
     author_list: Vec<&'b str>,
     read: [bool; Read::all().len()],
+    read_selected: usize,
     read_state: ListState,
     current_field: FilterPopupField,
 }
@@ -207,9 +209,11 @@ impl<'b> FilterPopupApp<'b> {
         authors.resize(author_list.len(), false);
         FilterPopupApp {
             authors,
+            author_selected: 0,
             authors_state: ListState::default().with_selected(Some(0)),
             author_list,
             read: [false; Read::all().len()],
+            read_selected: 0,
             read_state: ListState::default(),
             current_field: FilterPopupField::Author,
         }
@@ -217,45 +221,33 @@ impl<'b> FilterPopupApp<'b> {
     fn move_by(&mut self, δ: isize) {
         match self.current_field {
             FilterPopupField::Author => {
-                if let Some(i) = self.authors_state.selected() {
-                    let j = move_by(i, δ, self.authors.len());
-                    self.authors_state.select(Some(j))
-                }
+                self.author_selected = move_by(self.author_selected, δ, self.authors.len());
+                self.authors_state.select(Some(self.author_selected));
             }
             FilterPopupField::Read => {
                 const READ_NO: usize = Read::all().len();
-                if let Some(i) = self.read_state.selected() {
-                    let j = move_by(i, δ, READ_NO);
-                    self.read_state.select(Some(j))
-                }
+                self.read_selected = move_by(self.read_selected, δ, READ_NO);
+                self.read_state.select(Some(self.read_selected));
             }
         }
     }
     fn toggle(&mut self) {
         match self.current_field {
             FilterPopupField::Author => {
-                if let Some(i) = self.authors_state.selected() {
-                    self.authors[i] = !self.authors[i];
-                }
+                self.authors[self.author_selected] = !self.authors[self.author_selected];
             }
             FilterPopupField::Read => {
-                if let Some(i) = self.read_state.selected() {
-                    self.read[i] = !self.read[i];
-                }
+                self.read[self.read_selected] = !self.read[self.read_selected];
             }
         }
     }
     fn deselect(&mut self) {
         match self.current_field {
             FilterPopupField::Author => {
-                if let Some(i) = self.authors_state.selected() {
-                    self.authors[i] = false;
-                }
+                self.authors[self.author_selected] = false;
             }
             FilterPopupField::Read => {
-                if let Some(i) = self.read_state.selected() {
-                    self.read[i] = false;
-                }
+                self.read[self.read_selected] = false;
             }
         }
     }
@@ -266,8 +258,8 @@ impl<'b> FilterPopupApp<'b> {
         }
         self.current_field = new_field;
         match self.current_field {
-            FilterPopupField::Author => self.authors_state.select(Some(0)),
-            FilterPopupField::Read => self.read_state.select(Some(0)),
+            FilterPopupField::Author => self.authors_state.select(Some(self.author_selected)),
+            FilterPopupField::Read => self.read_state.select(Some(self.author_selected)),
         }
     }
     fn tab(&mut self) {
