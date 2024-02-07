@@ -373,13 +373,31 @@ fn popup_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
     .split(popup_layout[1])[1]
 }
 
+#[derive(PartialEq)]
+enum BookPopupField {
+    Title,
+    Author,
+    Read,
+}
+
 struct BookPopupApp<'b> {
     book: &'b Book,
+    current_field: BookPopupField,
 }
 
 impl<'b> BookPopupApp<'b> {
     fn new(book: &'b Book) -> Self {
-        BookPopupApp { book }
+        BookPopupApp {
+            book,
+            current_field: BookPopupField::Title,
+        }
+    }
+    fn tab(&mut self) {
+        self.current_field = match self.current_field {
+            BookPopupField::Title => BookPopupField::Author,
+            BookPopupField::Author => BookPopupField::Read,
+            BookPopupField::Read => BookPopupField::Title,
+        }
     }
 }
 
@@ -396,6 +414,7 @@ fn run_popup_book<'b, B: Backend>(
                     use KeyCode::*;
                     match key.code {
                         Esc => return Ok(()),
+                        Tab => app_popup.tab(),
                         _ => {}
                     }
                 }
@@ -418,15 +437,36 @@ fn draw_popup_book(f: &mut Frame, app: &mut BookPopupApp) {
     ]);
     let popup_filter_layout = popup_filter_layout_vertical.split(area);
 
-    let title_block = Block::bordered().title("Title");
+    let block_selected_style = Style::default().fg(Color::Yellow);
+
+    let title_block = block_border_style_if(
+        Block::bordered().title("Title"),
+        app.current_field == BookPopupField::Title,
+        block_selected_style,
+    );
+    let author_block = block_border_style_if(
+        Block::bordered().title("Author"),
+        app.current_field == BookPopupField::Author,
+        block_selected_style,
+    );
+    let read_block = block_border_style_if(
+        Block::bordered().title("Read"),
+        app.current_field == BookPopupField::Read,
+        block_selected_style,
+    );
+
     let title = Paragraph::new(app.book.title.as_str()).block(title_block);
-    f.render_widget(title, popup_filter_layout[0]);
-
-    let author_block = Block::bordered().title("Author");
-    let author = Paragraph::new(app.book.author.as_str()).block(author_block);
-    f.render_widget(author, popup_filter_layout[1]);
-
-    let read_block = Block::bordered().title("Read");
     let read = Paragraph::new(app.book.read_state().to_string()).block(read_block);
+    let author = Paragraph::new(app.book.author.as_str()).block(author_block);
+
+    f.render_widget(title, popup_filter_layout[0]);
+    f.render_widget(author, popup_filter_layout[1]);
     f.render_widget(read, popup_filter_layout[2]);
+}
+
+fn block_border_style_if(block: Block, cond: bool, style: Style) -> Block {
+    match cond {
+        true => block.border_style(style),
+        false => block,
+    }
 }
