@@ -290,8 +290,8 @@ fn run_popup_filter<'f, B: Backend>(
                     use KeyCode::*;
                     match key.code {
                         Enter => return Ok(Some(app_popup.to_filter())),
-                        Up => app_popup.move_by(-1),
-                        Down => app_popup.move_by(1),
+                        Char('k') | Up => app_popup.move_by(-1),
+                        Char('j') | Down => app_popup.move_by(1),
                         Esc => return Ok(None),
                         Backspace | Delete => app_popup.deselect(),
                         Tab => app_popup.tab(),
