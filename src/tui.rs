@@ -11,7 +11,7 @@ use ratatui::{
     backend::{Backend, CrosstermBackend},
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
-    widgets::{Block, Borders, Cell, List, ListState, Paragraph, Row, Table, TableState},
+    widgets::{Block, Cell, List, ListState, Paragraph, Row, Table, TableState},
     Frame, Terminal,
 };
 use std::{cmp::Ordering, io, iter::zip};
@@ -139,11 +139,7 @@ fn run_tui<B: Backend>(terminal: &mut Terminal<B>, mut app: &mut App) -> Result<
 
 fn draw(rect: &mut Frame, app: &mut App) {
     let size = rect.size();
-    let chunks = Layout::new(
-        Direction::Vertical,
-        [Constraint::Length(1), Constraint::Min(2)],
-    )
-    .split(size);
+    let chunks = Layout::vertical([Constraint::Length(1), Constraint::Min(2)]).split(size);
 
     let highlight_style = Style::default().fg(Color::Yellow);
 
@@ -160,9 +156,9 @@ fn draw(rect: &mut Frame, app: &mut App) {
         rows,
         [
             Constraint::Length(3),
-            Constraint::Min(1),
-            Constraint::Length(30),
-            Constraint::Length(30),
+            Constraint::Length(3),
+            Constraint::Min(35),
+            Constraint::Length(35),
         ],
     )
     .highlight_style(highlight_style);
@@ -337,7 +333,7 @@ fn draw_popup_filter(f: &mut Frame, app: &mut FilterPopupApp) {
     );
     let popup_filter_layout = popup_filter_layout_vertical.split(area);
 
-    let author_block = Block::default().title("Author").borders(Borders::ALL);
+    let author_block = Block::bordered().title("Author");
     let author_list = List::new(app.author_list.iter().enumerate().map(|(i, a)| {
         let selected = selected_symbol(app.authors[i]);
         format!("[{selected}] {a}")
@@ -346,7 +342,7 @@ fn draw_popup_filter(f: &mut Frame, app: &mut FilterPopupApp) {
     .highlight_style(highlight_style);
     f.render_stateful_widget(author_list, popup_filter_layout[0], &mut app.authors_state);
 
-    let read_block = Block::default().title("Read").borders(Borders::ALL);
+    let read_block = Block::bordered().title("Read");
     let read_list = List::new(Read::all().iter().enumerate().map(|(i, r)| {
         let selected = selected_symbol(app.read[i]);
         format!("[{selected}] {r}")
@@ -414,21 +410,23 @@ fn draw_popup_book(f: &mut Frame, app: &mut BookPopupApp) {
     let popup_block = ratatui::widgets::Block::default().title("Book");
     f.render_widget(popup_block, area);
 
-    let popup_filter_layout_vertical = Layout::new(
-        Direction::Vertical,
-        [Constraint::Min(4), Constraint::Min(4), Constraint::Min(4)],
-    );
+    let popup_filter_layout_vertical = Layout::vertical([
+        Constraint::Min(3),
+        Constraint::Min(3),
+        Constraint::Min(3),
+        Constraint::Fill(1),
+    ]);
     let popup_filter_layout = popup_filter_layout_vertical.split(area);
 
-    let title_block = Block::default().title("Title").borders(Borders::ALL);
+    let title_block = Block::bordered().title("Title");
     let title = Paragraph::new(app.book.title.as_str()).block(title_block);
     f.render_widget(title, popup_filter_layout[0]);
 
-    let author_block = Block::default().title("Author").borders(Borders::ALL);
+    let author_block = Block::bordered().title("Author");
     let author = Paragraph::new(app.book.author.as_str()).block(author_block);
     f.render_widget(author, popup_filter_layout[1]);
 
-    let read_block = Block::default().title("Read").borders(Borders::ALL);
+    let read_block = Block::bordered().title("Read");
     let read = Paragraph::new(app.book.read_state().to_string()).block(read_block);
     f.render_widget(read, popup_filter_layout[2]);
 }
