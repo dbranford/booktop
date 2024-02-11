@@ -14,7 +14,7 @@ use ratatui::{
     widgets::{Block, Cell, List, ListState, Paragraph, Row, Table, TableState},
     Frame, Terminal,
 };
-use std::{cmp::Ordering, io, iter::zip};
+use std::{cmp::Ordering, io, iter::zip, rc::Rc};
 
 fn move_by(i: usize, δ: isize, l: usize) -> usize {
     match i.saturating_add_signed(δ) >= l {
@@ -30,18 +30,19 @@ enum Popup {
 }
 
 struct App<'b> {
-    bookcase: &'b Bookcase,
+    bookcase: &'b mut Bookcase,
     popup: Option<Popup>,
     visible_books: Vec<usize>,
     state: TableState,
 }
 
 impl<'b> App<'b> {
-    fn new(bookcase: &'b Bookcase) -> App {
+    fn new(bookcase: &'b mut Bookcase) -> App {
+        let visible_books = bookcase.books.keys().cloned().collect();
         App {
             bookcase,
             popup: None,
-            visible_books: bookcase.books.keys().cloned().collect(),
+            visible_books,
             state: TableState::default().with_selected(Some(0)),
         }
     }
@@ -191,20 +192,20 @@ impl FilterPopupField {
     }
 }
 
-struct FilterPopupApp<'b> {
+struct FilterPopupApp {
     authors: Vec<bool>,
     author_selected: usize,
     authors_state: ListState,
-    author_list: Vec<&'b str>,
+    author_list: Vec<Rc<str>>,
     read: [bool; Read::all().len()],
     read_selected: usize,
     read_state: ListState,
     current_field: FilterPopupField,
 }
 
-impl<'b> FilterPopupApp<'b> {
-    fn new(books: &'b Bookcase) -> Self {
-        let author_list = books.get_authors();
+impl FilterPopupApp {
+    fn new(books: &Bookcase) -> Self {
+        let author_list: Vec<_> = books.get_authors().iter().map(|&s| Rc::from(s)).collect();
         let mut authors = Vec::new();
         authors.resize(author_list.len(), false);
         FilterPopupApp {
@@ -265,7 +266,7 @@ impl<'b> FilterPopupApp<'b> {
     fn tab(&mut self) {
         self.switch_fields(self.current_field.next())
     }
-    fn to_filter(&self) -> Filter<'b> {
+    fn to_filter(&self) -> Filter {
         Filter {
             author_match: zip(&self.authors, self.author_list.clone())
                 .filter_map(|(b, a)| b.then_some(a))
@@ -280,7 +281,7 @@ impl<'b> FilterPopupApp<'b> {
 fn run_popup_filter<'f, B: Backend>(
     terminal: &mut Terminal<B>,
     books: &'f Bookcase,
-) -> Result<Option<Filter<'f>>, io::Error> {
+) -> Result<Option<Filter>, io::Error> {
     let mut app_popup = FilterPopupApp::new(books);
     loop {
         terminal.draw(|rect| draw_popup_filter(rect, &mut app_popup))?;

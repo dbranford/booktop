@@ -1,13 +1,14 @@
 use crate::book::{Book, Read};
 use std::collections::HashSet;
+use std::rc::Rc;
 
 #[derive(Debug)]
-pub struct Filter<'f> {
-    pub author_match: Vec<&'f str>,
+pub struct Filter {
+    pub author_match: Vec<Rc<str>>,
     pub read: HashSet<Read>,
 }
 
-impl<'f> Filter<'f> {
+impl Filter {
     fn match_book(self: &Self, book: &Book) -> bool {
         self.author_match
             .iter()
