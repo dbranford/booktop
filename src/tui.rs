@@ -108,9 +108,12 @@ fn run_tui<B: Backend>(terminal: &mut Terminal<B>, mut app: &mut App) -> Result<
                 Popup::Book => {
                     if let Some(i) = app.state.selected() {
                         if let Some(b) = app.bookcase.get_book(app.visible_books[i]) {
-                            run_popup_book(terminal, b)?;
-                        }
-                    }
+                            let returned_book = run_popup_book(terminal, b)?;
+                            if let Some(book) = returned_book {
+                                app.bookcase.books.insert(app.visible_books[i], book);
+                            }
+                        };
+                    };
                 }
             }
             app.popup = None
@@ -373,15 +376,15 @@ enum BookPopupField {
     Read,
 }
 
-struct BookPopupApp<'b> {
-    book: &'b Book,
+struct BookPopupApp {
+    book: Book,
     current_field: BookPopupField,
 }
 
-impl<'b> BookPopupApp<'b> {
-    fn new(book: &'b Book) -> Self {
+impl BookPopupApp {
+    fn new(book: &Book) -> Self {
         BookPopupApp {
-            book,
+            book: book.clone(),
             current_field: BookPopupField::Title,
         }
     }
@@ -397,7 +400,7 @@ impl<'b> BookPopupApp<'b> {
 fn run_popup_book<'b, B: Backend>(
     terminal: &mut Terminal<B>,
     book: &'b Book,
-) -> Result<(), io::Error> {
+) -> Result<Option<Book>, io::Error> {
     let mut app_popup = BookPopupApp::new(book);
     loop {
         terminal.draw(|rect| draw_popup_book(rect, &mut app_popup))?;
@@ -406,7 +409,8 @@ fn run_popup_book<'b, B: Backend>(
                 if key.kind == KeyEventKind::Press {
                     use KeyCode::*;
                     match key.code {
-                        Esc => return Ok(()),
+                        Enter => return Ok(Some(app_popup.book)),
+                        Esc => return Ok(None),
                         Tab => app_popup.tab(),
                         _ => {}
                     }

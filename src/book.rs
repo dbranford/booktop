@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
-#[derive(Eq, PartialEq, Debug, Default, Hash, Deserialize, Serialize)]
+#[derive(Eq, PartialEq, Debug, Clone, Default, Hash, Deserialize, Serialize)]
 pub enum Read {
     Read,
     Reading,
@@ -35,7 +35,7 @@ impl Read {
     }
 }
 
-#[derive(Eq, PartialEq, Debug, Deserialize, Serialize)]
+#[derive(Eq, PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct Book {
     pub title: String,
     pub author: String,
