@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use std::fs::File;
 use std::path::Path;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Bookcase {
     pub name: String,
     pub books: BTreeMap<usize, Book>,

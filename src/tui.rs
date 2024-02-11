@@ -23,12 +23,13 @@ fn move_by(i: usize, δ: isize, l: usize) -> usize {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 enum Popup {
     Book,
     Filter,
 }
 
+#[derive(Debug, Eq, PartialEq)]
 struct App<'b> {
     bookcase: &'b mut Bookcase,
     popup: Option<Popup>,
@@ -180,6 +181,7 @@ fn row_from_book<'b>((i, b): (&'b usize, &'b Book)) -> Row {
     ])
 }
 
+#[derive(Debug, Eq, PartialEq)]
 enum FilterPopupField {
     Author,
     Read,
@@ -195,12 +197,14 @@ impl FilterPopupField {
     }
 }
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd)]
 enum SelectionChange {
     Select,
     Deselect,
     Toggle,
 }
 
+#[derive(Debug, Eq, PartialEq)]
 struct SelectableList<T> {
     values: Vec<T>,
     selected: Vec<bool>,
@@ -253,6 +257,7 @@ where
     }
 }
 
+#[derive(Debug, Eq, PartialEq)]
 struct FilterPopupApp {
     authors: SelectableList<Rc<str>>,
     read: SelectableList<Read>,
@@ -397,13 +402,14 @@ fn popup_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
     .split(popup_layout[1])[1]
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 enum BookPopupField {
     Title,
     Author,
     Read,
 }
 
+#[derive(Debug, Eq, PartialEq)]
 struct BookPopupApp {
     book: Book,
     current_field: BookPopupField,
