@@ -14,7 +14,7 @@ use ratatui::{
     widgets::{Block, Cell, List, ListState, Paragraph, Row, Table, TableState},
     Frame, Terminal,
 };
-use std::{cmp::Ordering, io, iter::zip, rc::Rc};
+use std::{cmp::Ordering, fmt::Display, io, iter::zip, rc::Rc};
 
 fn move_by(i: usize, δ: isize, l: usize) -> usize {
     match i.saturating_add_signed(δ) >= l {
@@ -195,87 +195,121 @@ impl FilterPopupField {
     }
 }
 
+enum SelectionChange {
+    Select,
+    Deselect,
+    Toggle,
+}
+
+struct SelectableList<T> {
+    values: Vec<T>,
+    selected: Vec<bool>,
+    cursor_position: usize,
+    state: ListState,
+    len: usize,
+}
+
+impl<T> SelectableList<T>
+where
+    T: Clone + Display,
+{
+    fn new(values: &[T]) -> Self {
+        let len = values.len();
+        let selected = vec![false; len];
+        let values = values.into_iter().cloned().collect();
+        SelectableList {
+            values,
+            selected,
+            cursor_position: 0,
+            state: ListState::default(),
+            len,
+        }
+    }
+    fn move_by(&mut self, δ: isize) {
+        self.cursor_position = move_by(self.cursor_position, δ, self.len);
+        self.state.select(Some(self.cursor_position));
+    }
+    fn change_selection(&mut self, switch: SelectionChange) {
+        if let Some(b) = self.selected.get_mut(self.cursor_position) {
+            match switch {
+                SelectionChange::Select => *b = true,
+                SelectionChange::Deselect => *b = false,
+                SelectionChange::Toggle => *b = !*b,
+            };
+        }
+    }
+    fn activate(&mut self) {
+        self.state.select(Some(self.cursor_position))
+    }
+    fn deactivate(&mut self) {
+        self.state.select(None)
+    }
+    fn as_stateful_list(&mut self) -> (List, &mut ListState) {
+        let author_list = List::new(self.values.iter().enumerate().map(|(i, a)| {
+            let selected = selected_symbol(self.selected[i]);
+            format!("[{selected}] {a}")
+        }));
+        (author_list, &mut self.state)
+    }
+}
+
 struct FilterPopupApp {
-    authors: Vec<bool>,
-    author_selected: usize,
-    authors_state: ListState,
-    author_list: Vec<Rc<str>>,
-    read: [bool; Read::all().len()],
-    read_selected: usize,
-    read_state: ListState,
+    authors: SelectableList<Rc<str>>,
+    read: SelectableList<Read>,
     current_field: FilterPopupField,
 }
 
 impl FilterPopupApp {
     fn new(books: &Bookcase) -> Self {
-        let author_list: Vec<_> = books.get_authors().iter().map(|&s| Rc::from(s)).collect();
-        let mut authors = Vec::new();
-        authors.resize(author_list.len(), false);
+        let read = SelectableList::new(&Read::all());
+        let author_list: Vec<_> = books.get_authors().iter().map(|a| Rc::from(*a)).collect();
+        let mut authors = SelectableList::new(&author_list);
+        authors.activate();
         FilterPopupApp {
             authors,
-            author_selected: 0,
-            authors_state: ListState::default().with_selected(Some(0)),
-            author_list,
-            read: [false; Read::all().len()],
-            read_selected: 0,
-            read_state: ListState::default(),
+            read,
             current_field: FilterPopupField::Author,
         }
     }
     fn move_by(&mut self, δ: isize) {
         match self.current_field {
-            FilterPopupField::Author => {
-                self.author_selected = move_by(self.author_selected, δ, self.authors.len());
-                self.authors_state.select(Some(self.author_selected));
-            }
-            FilterPopupField::Read => {
-                const READ_NO: usize = Read::all().len();
-                self.read_selected = move_by(self.read_selected, δ, READ_NO);
-                self.read_state.select(Some(self.read_selected));
-            }
+            FilterPopupField::Author => self.authors.move_by(δ),
+            FilterPopupField::Read => self.read.move_by(δ),
         }
     }
     fn toggle(&mut self) {
         match self.current_field {
-            FilterPopupField::Author => {
-                self.authors[self.author_selected] = !self.authors[self.author_selected];
-            }
-            FilterPopupField::Read => {
-                self.read[self.read_selected] = !self.read[self.read_selected];
-            }
+            FilterPopupField::Author => self.authors.change_selection(SelectionChange::Toggle),
+            FilterPopupField::Read => self.read.change_selection(SelectionChange::Toggle),
         }
     }
     fn deselect(&mut self) {
         match self.current_field {
-            FilterPopupField::Author => {
-                self.authors[self.author_selected] = false;
-            }
-            FilterPopupField::Read => {
-                self.read[self.read_selected] = false;
-            }
+            FilterPopupField::Author => self.authors.change_selection(SelectionChange::Deselect),
+            FilterPopupField::Read => self.read.change_selection(SelectionChange::Deselect),
         }
     }
     fn switch_fields(&mut self, new_field: FilterPopupField) {
         match self.current_field {
-            FilterPopupField::Author => self.authors_state.select(None),
-            FilterPopupField::Read => self.read_state.select(None),
+            FilterPopupField::Author => self.authors.deactivate(),
+            FilterPopupField::Read => self.read.deactivate(),
         }
         self.current_field = new_field;
         match self.current_field {
-            FilterPopupField::Author => self.authors_state.select(Some(self.author_selected)),
-            FilterPopupField::Read => self.read_state.select(Some(self.author_selected)),
+            FilterPopupField::Author => self.authors.activate(),
+            FilterPopupField::Read => self.read.activate(),
         }
     }
     fn tab(&mut self) {
         self.switch_fields(self.current_field.next())
     }
-    fn to_filter(&self) -> Filter {
+    fn to_filter(self) -> Filter {
         Filter {
-            author_match: zip(&self.authors, self.author_list.clone())
-                .filter_map(|(b, a)| b.then_some(a))
+            author_match: zip(self.authors.values, self.authors.selected)
+                .filter_map(|(a, b)| b.then_some(a))
                 .collect(),
-            read: zip(self.read, Read::all())
-                .filter_map(|(b, r)| b.then_some(r))
+            read: zip(self.read.values, self.read.selected)
+                .filter_map(|(r, b)| b.then_some(r))
                 .collect(),
         }
     }
@@ -330,22 +364,16 @@ fn draw_popup_filter(f: &mut Frame, app: &mut FilterPopupApp) {
     let popup_filter_layout = popup_filter_layout_vertical.split(area);
 
     let author_block = Block::bordered().title("Author");
-    let author_list = List::new(app.author_list.iter().enumerate().map(|(i, a)| {
-        let selected = selected_symbol(app.authors[i]);
-        format!("[{selected}] {a}")
-    }))
-    .block(author_block)
-    .highlight_style(highlight_style);
-    f.render_stateful_widget(author_list, popup_filter_layout[0], &mut app.authors_state);
+    let (author_list, author_state) = app.authors.as_stateful_list();
+    let author_list = author_list
+        .block(author_block)
+        .highlight_style(highlight_style);
+    f.render_stateful_widget(author_list, popup_filter_layout[0], author_state);
 
     let read_block = Block::bordered().title("Read");
-    let read_list = List::new(Read::all().iter().enumerate().map(|(i, r)| {
-        let selected = selected_symbol(app.read[i]);
-        format!("[{selected}] {r}")
-    }))
-    .block(read_block)
-    .highlight_style(highlight_style);
-    f.render_stateful_widget(read_list, popup_filter_layout[1], &mut app.read_state);
+    let (read_list, read_state) = app.read.as_stateful_list();
+    let read_list = read_list.block(read_block).highlight_style(highlight_style);
+    f.render_stateful_widget(read_list, popup_filter_layout[1], read_state);
 }
 
 fn popup_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
