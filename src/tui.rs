@@ -395,6 +395,24 @@ impl BookPopupApp {
             BookPopupField::Read => BookPopupField::Title,
         }
     }
+    fn backspace(&mut self) {
+        match self.current_field {
+            BookPopupField::Author => {
+                self.book.author.pop();
+            }
+            BookPopupField::Title => {
+                self.book.title.pop();
+            }
+            _ => {}
+        }
+    }
+    fn input(&mut self, value: char) {
+        match self.current_field {
+            BookPopupField::Author => self.book.author.push(value),
+            BookPopupField::Title => self.book.title.push(value),
+            _ => {}
+        }
+    }
 }
 
 fn run_popup_book<'b, B: Backend>(
@@ -412,6 +430,8 @@ fn run_popup_book<'b, B: Backend>(
                         Enter => return Ok(Some(app_popup.book)),
                         Esc => return Ok(None),
                         Tab => app_popup.tab(),
+                        Backspace => app_popup.backspace(),
+                        Char(value) => app_popup.input(value),
                         _ => {}
                     }
                 }
