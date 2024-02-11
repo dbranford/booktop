@@ -7,6 +7,7 @@ use crossterm::{
     event::{self, Event, KeyCode, KeyEventKind},
     terminal::{disable_raw_mode, enable_raw_mode},
 };
+use rand::Rng;
 use ratatui::{
     backend::{Backend, CrosstermBackend},
     layout::{Constraint, Direction, Layout, Rect},
@@ -134,6 +135,11 @@ fn run_tui<B: Backend>(terminal: &mut Terminal<B>, mut app: &mut App) -> Result<
                         Char('f') => app.popup = Some(Popup::Filter),
                         Char('F') => app.reset_visible(),
                         Enter => app.popup = Some(Popup::Book),
+                        Char('?') => {
+                            let n =
+                                rand::thread_rng().gen_range(0..app.visible_books.len()) as isize;
+                            app.move_to(n);
+                        }
                         _ => {}
                     }
                 }
