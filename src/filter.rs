@@ -10,10 +10,12 @@ pub struct Filter {
 
 impl Filter {
     fn match_book(self: &Self, book: &Book) -> bool {
-        self.author_match
-            .iter()
-            .any(|a| string_match(a, &book.author))
-            && self.read.contains(book.read_state())
+        (self.author_match.is_empty()
+            || self
+                .author_match
+                .iter()
+                .any(|a| string_match(a, &book.author)))
+            && (self.read.is_empty() || self.read.contains(book.read_state()))
     }
     pub fn filter_books<'b, T>(
         &'b self,
