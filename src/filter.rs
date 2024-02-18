@@ -6,6 +6,7 @@ use std::rc::Rc;
 pub struct Filter {
     pub author_match: Vec<Rc<str>>,
     pub read: HashSet<Read>,
+    pub tags: Vec<String>,
 }
 
 impl Filter {
@@ -16,6 +17,7 @@ impl Filter {
                 .iter()
                 .any(|a| string_match(a, &book.author)))
             && (self.read.is_empty() || self.read.contains(book.read_state()))
+            && (self.tags.is_empty() || self.tags.iter().any(|t| book.tags.contains(t)))
     }
     pub fn filter_books<'b, T>(
         &'b self,

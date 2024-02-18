@@ -1,7 +1,7 @@
 use crate::book::Book;
 use rand::seq::IteratorRandom;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::fs::File;
 use std::path::Path;
 
@@ -47,6 +47,13 @@ impl Bookcase {
         authors.dedup();
         authors
     }
+    pub fn get_tags(&self) -> Vec<String> {
+        let mut tags: HashSet<String> = HashSet::new();
+        for b in self.books.values() {
+            tags.extend(b.tags.clone())
+        }
+        tags.into_iter().collect()
+    }
     pub fn pick_book(&self) -> (&usize, &Book) {
         let mut rng = rand::thread_rng();
         match self.books.iter().choose(&mut rng) {
@@ -62,5 +69,44 @@ impl Bookcase {
         for (ind, val) in tmp.into_values().enumerate() {
             self.books.insert(ind + 1, val);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_bookcase() -> Bookcase {
+        let mut b1 = Book::new(
+            "Titular Title".to_string(),
+            "Authoritative Author".to_string(),
+        );
+        let mut b2 = Book::new(
+            "Uitular Title".to_string(),
+            "Buthoritative Author".to_string(),
+        );
+        b1.tag("alpha");
+        b1.tag("beta");
+        b2.tag("alpha");
+        Bookcase {
+            name: "Bookcase name".to_string(),
+            books: BTreeMap::from([(1, b1), (2, b2)]),
+        }
+    }
+
+    #[test]
+    fn get_tags() {
+        let b = test_bookcase();
+        let tags = b.get_tags();
+        let mut tags_dedup = tags.clone();
+        tags_dedup.dedup();
+
+        // Vec has no duplicates
+        assert_eq!(tags, tags_dedup);
+        // Vec has correct contents in any order
+        assert_eq!(
+            HashSet::<String>::from_iter(tags),
+            HashSet::<String>::from_iter(vec!["alpha".to_string(), "beta".to_string()])
+        )
     }
 }

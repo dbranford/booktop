@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::fmt;
 
 #[derive(Eq, PartialEq, Debug, Clone, Default, Hash, Deserialize, Serialize)]
@@ -41,6 +42,8 @@ pub struct Book {
     pub author: String,
     #[serde(default)]
     read: Read,
+    #[serde(default)]
+    pub tags: HashSet<String>,
 }
 
 impl Book {
@@ -49,6 +52,7 @@ impl Book {
             title,
             author,
             read: Read::Unread,
+            tags: HashSet::new(),
         }
     }
     pub fn start(&mut self) {
@@ -65,6 +69,15 @@ impl Book {
     }
     pub fn read_state(&self) -> &Read {
         &self.read
+    }
+    pub fn tag(&mut self, tag: &str) -> bool {
+        self.tags.insert(tag.to_string())
+    }
+    pub fn untag(&mut self, tag: &str) -> bool {
+        self.tags.remove(tag)
+    }
+    pub fn contains_tag(&self, tag: &str) -> bool {
+        self.tags.contains(tag)
     }
 }
 
@@ -84,6 +97,7 @@ mod tests {
             title: "Titular Title".to_string(),
             author: "Authoritative Author".to_string(),
             read: Read::Unread,
+            tags: HashSet::new(),
         }
     }
 
@@ -93,7 +107,8 @@ mod tests {
         let s = serde_yaml::to_string(&b).unwrap();
         assert_eq!(
             s,
-            "title: Titular Title\nauthor: Authoritative Author\nread: Unread\n".to_string()
+            "title: Titular Title\nauthor: Authoritative Author\nread: Unread\ntags: []\n"
+                .to_string()
         );
     }
 

@@ -191,6 +191,7 @@ fn row_from_book<'b>((i, b): (&'b usize, &'b Book)) -> Row {
 enum FilterPopupField {
     Author,
     Read,
+    Tags,
 }
 
 impl FilterPopupField {
@@ -198,7 +199,8 @@ impl FilterPopupField {
         use FilterPopupField::*;
         match self {
             Author => Read,
-            Read => Author,
+            Read => Tags,
+            Tags => Author,
         }
     }
 }
@@ -267,6 +269,7 @@ where
 struct FilterPopupApp {
     authors: SelectableList<Rc<str>>,
     read: SelectableList<Read>,
+    tags: SelectableList<String>,
     current_field: FilterPopupField,
 }
 
@@ -275,10 +278,12 @@ impl FilterPopupApp {
         let read = SelectableList::new(&Read::all());
         let author_list: Vec<_> = books.get_authors().iter().map(|a| Rc::from(*a)).collect();
         let mut authors = SelectableList::new(&author_list);
+        let tags = SelectableList::new(&books.get_tags());
         authors.activate();
         FilterPopupApp {
             authors,
             read,
+            tags,
             current_field: FilterPopupField::Author,
         }
     }
@@ -286,29 +291,34 @@ impl FilterPopupApp {
         match self.current_field {
             FilterPopupField::Author => self.authors.move_by(δ),
             FilterPopupField::Read => self.read.move_by(δ),
+            FilterPopupField::Tags => self.tags.move_by(δ),
         }
     }
     fn toggle(&mut self) {
         match self.current_field {
             FilterPopupField::Author => self.authors.change_selection(SelectionChange::Toggle),
             FilterPopupField::Read => self.read.change_selection(SelectionChange::Toggle),
+            FilterPopupField::Tags => self.tags.change_selection(SelectionChange::Toggle),
         }
     }
     fn deselect(&mut self) {
         match self.current_field {
             FilterPopupField::Author => self.authors.change_selection(SelectionChange::Deselect),
             FilterPopupField::Read => self.read.change_selection(SelectionChange::Deselect),
+            FilterPopupField::Tags => self.tags.change_selection(SelectionChange::Deselect),
         }
     }
     fn switch_fields(&mut self, new_field: FilterPopupField) {
         match self.current_field {
             FilterPopupField::Author => self.authors.deactivate(),
             FilterPopupField::Read => self.read.deactivate(),
+            FilterPopupField::Tags => self.tags.deactivate(),
         }
         self.current_field = new_field;
         match self.current_field {
             FilterPopupField::Author => self.authors.activate(),
             FilterPopupField::Read => self.read.activate(),
+            FilterPopupField::Tags => self.tags.activate(),
         }
     }
     fn tab(&mut self) {
@@ -322,6 +332,7 @@ impl FilterPopupApp {
             read: zip(self.read.values, self.read.selected)
                 .filter_map(|(r, b)| b.then_some(r))
                 .collect(),
+            tags: Vec::new(),
         }
     }
 }
@@ -370,7 +381,11 @@ fn draw_popup_filter(f: &mut Frame, app: &mut FilterPopupApp) {
 
     let popup_filter_layout_vertical = Layout::new(
         Direction::Vertical,
-        [Constraint::Min(1), Constraint::Length(4)],
+        [
+            Constraint::Min(1),
+            Constraint::Length(4),
+            Constraint::Min(1),
+        ],
     );
     let popup_filter_layout = popup_filter_layout_vertical.split(area);
 
@@ -385,6 +400,11 @@ fn draw_popup_filter(f: &mut Frame, app: &mut FilterPopupApp) {
     let (read_list, read_state) = app.read.as_stateful_list();
     let read_list = read_list.block(read_block).highlight_style(highlight_style);
     f.render_stateful_widget(read_list, popup_filter_layout[1], read_state);
+
+    let tags_block = Block::bordered().title("Tags");
+    let (tags_list, tags_state) = app.tags.as_stateful_list();
+    let tags_list = tags_list.block(tags_block).highlight_style(highlight_style);
+    f.render_stateful_widget(tags_list, popup_filter_layout[2], tags_state);
 }
 
 fn popup_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
@@ -413,26 +433,34 @@ enum BookPopupField {
     Title,
     Author,
     Read,
+    Tags,
 }
+
+const SEPARATOR_CHAR: char = ',';
 
 #[derive(Debug, Eq, PartialEq)]
 struct BookPopupApp {
     book: Book,
+    tags: Vec<String>,
     current_field: BookPopupField,
 }
 
 impl BookPopupApp {
     fn new(book: &Book) -> Self {
+        let book = book.clone();
+        let tags = book.tags.iter().cloned().collect();
         BookPopupApp {
-            book: book.clone(),
+            book,
             current_field: BookPopupField::Title,
+            tags,
         }
     }
     fn tab(&mut self) {
         self.current_field = match self.current_field {
             BookPopupField::Title => BookPopupField::Author,
             BookPopupField::Author => BookPopupField::Read,
-            BookPopupField::Read => BookPopupField::Title,
+            BookPopupField::Read => BookPopupField::Tags,
+            BookPopupField::Tags => BookPopupField::Title,
         }
     }
     fn backspace(&mut self) {
@@ -443,6 +471,13 @@ impl BookPopupApp {
             BookPopupField::Title => {
                 self.book.title.pop();
             }
+            BookPopupField::Tags => match self.tags.pop() {
+                Some(mut t) => match t.pop() {
+                    Some(_) => self.tags.push(t),
+                    None => {}
+                },
+                None => {}
+            },
             _ => {}
         }
     }
@@ -450,8 +485,26 @@ impl BookPopupApp {
         match self.current_field {
             BookPopupField::Author => self.book.author.push(value),
             BookPopupField::Title => self.book.title.push(value),
+            BookPopupField::Tags => match self.tags.pop() {
+                Some(mut t) => match value {
+                    SEPARATOR_CHAR => {
+                        self.tags.push(t);
+                        self.tags.push(String::new());
+                    }
+                    _ => {
+                        t.push(value);
+                        self.tags.push(t);
+                    }
+                },
+                None => self.tags.push(value.to_string()),
+            },
             _ => {}
         }
+    }
+    fn to_book(self) -> Book {
+        let mut book = self.book;
+        book.tags = self.tags.into_iter().collect();
+        book
     }
 }
 
@@ -467,7 +520,7 @@ fn run_popup_book<'b, B: Backend>(
                 if key.kind == KeyEventKind::Press {
                     use KeyCode::*;
                     match key.code {
-                        Enter => return Ok(Some(app_popup.book)),
+                        Enter => return Ok(Some(app_popup.to_book())),
                         Esc => return Ok(None),
                         Tab => app_popup.tab(),
                         Backspace => app_popup.backspace(),
@@ -487,6 +540,7 @@ fn draw_popup_book(f: &mut Frame, app: &mut BookPopupApp) {
     f.render_widget(popup_block, area);
 
     let popup_filter_layout_vertical = Layout::vertical([
+        Constraint::Min(3),
         Constraint::Min(3),
         Constraint::Min(3),
         Constraint::Min(3),
@@ -511,10 +565,16 @@ fn draw_popup_book(f: &mut Frame, app: &mut BookPopupApp) {
         app.current_field == BookPopupField::Read,
         block_selected_style,
     );
+    let tags_block = block_border_style_if(
+        Block::bordered().title("Tags"),
+        app.current_field == BookPopupField::Tags,
+        block_selected_style,
+    );
 
     let title = Paragraph::new(app.book.title.as_str()).block(title_block);
     let read = Paragraph::new(app.book.read_state().to_string()).block(read_block);
     let author = Paragraph::new(app.book.author.as_str()).block(author_block);
+    let tags = Paragraph::new(app.tags.join(&SEPARATOR_CHAR.to_string())).block(tags_block);
 
     f.render_widget(title, popup_filter_layout[0]);
     f.render_widget(author, popup_filter_layout[1]);
