@@ -257,11 +257,11 @@ where
         self.state.select(None)
     }
     fn as_stateful_list(&mut self) -> (List, &mut ListState) {
-        let author_list = List::new(self.values.iter().enumerate().map(|(i, a)| {
+        let list = List::new(self.values.iter().enumerate().map(|(i, e)| {
             let selected = selected_symbol(self.selected[i]);
-            format!("[{selected}] {a}")
+            format!("[{selected}] {e}")
         }));
-        (author_list, &mut self.state)
+        (list, &mut self.state)
     }
 }
 
@@ -576,9 +576,9 @@ fn draw_popup_book(f: &mut Frame, app: &mut BookPopupApp) {
     let author = Paragraph::new(app.book.author.as_str()).block(author_block);
     let tags = Paragraph::new(app.tags.join(&SEPARATOR_CHAR.to_string())).block(tags_block);
 
-    f.render_widget(title, popup_filter_layout[0]);
-    f.render_widget(author, popup_filter_layout[1]);
-    f.render_widget(read, popup_filter_layout[2]);
+    f.render_widget(title, popup_book_layout[0]);
+    f.render_widget(author, popup_book_layout[1]);
+    f.render_widget(read, popup_book_layout[2]);
 }
 
 fn block_border_style_if(block: Block, cond: bool, style: Style) -> Block {
