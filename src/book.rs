@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::fmt;
 
@@ -34,6 +35,13 @@ impl Read {
             Read::Stopped => 'S', //'🔖',
         }
     }
+}
+
+#[derive(Debug, Default, Eq, PartialEq)]
+pub enum Sorting {
+    #[default]
+    Title,
+    Author,
 }
 
 #[derive(Eq, PartialEq, Debug, Clone, Serialize, Deserialize)]
@@ -78,6 +86,12 @@ impl Book {
     }
     pub fn contains_tag(&self, tag: &str) -> bool {
         self.tags.contains(tag)
+    }
+    pub fn cmp_by(&self, other: &Self, sorting: &Sorting) -> Ordering {
+        match sorting {
+            Sorting::Title => self.title.cmp(&other.title),
+            Sorting::Author => self.author.cmp(&other.author),
+        }
     }
 }
 
