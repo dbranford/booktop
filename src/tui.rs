@@ -1,5 +1,5 @@
 use crate::{
-    book::{Book, Read},
+    book::{Book, Read, Sorting as BookSorting},
     books::Bookcase,
     filter::Filter,
 };
@@ -76,6 +76,15 @@ impl<'b> App<'b> {
     }
     fn reset_visible(&mut self) {
         self.visible_books = self.bookcase.books.keys().cloned().collect()
+    }
+    fn sort_by(&mut self, sorting: &BookSorting) {
+        let mut books = self
+            .bookcase
+            .get_books_by_keys(&self.visible_books)
+            .flatten()
+            .collect::<Vec<_>>();
+        books.sort_by(|(_, b1), (_, b2)| b1.cmp_by(b2, sorting));
+        self.visible_books = books.iter().map(|(k, _)| **k).collect();
     }
 }
 
