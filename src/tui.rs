@@ -148,6 +148,8 @@ fn run_tui<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<(), 
                                 rand::thread_rng().gen_range(0..app.visible_books.len()) as isize;
                             app.move_to(n);
                         }
+                        Char('T') => app.sort_by(&BookSorting::Title),
+                        Char('A') => app.sort_by(&BookSorting::Author),
                         _ => {}
                     }
                 }
