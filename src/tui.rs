@@ -539,14 +539,14 @@ fn draw_popup_book(f: &mut Frame, app: &mut BookPopupApp) {
     let popup_block = ratatui::widgets::Block::default().title("Book");
     f.render_widget(popup_block, area);
 
-    let popup_filter_layout_vertical = Layout::vertical([
+    let popup_book_layout_vertical = Layout::vertical([
         Constraint::Min(3),
         Constraint::Min(3),
         Constraint::Min(3),
         Constraint::Min(3),
         Constraint::Fill(1),
     ]);
-    let popup_filter_layout = popup_filter_layout_vertical.split(area);
+    let popup_book_layout = popup_book_layout_vertical.split(area);
 
     let block_selected_style = Style::default().fg(Color::Yellow);
 
@@ -579,6 +579,7 @@ fn draw_popup_book(f: &mut Frame, app: &mut BookPopupApp) {
     f.render_widget(title, popup_book_layout[0]);
     f.render_widget(author, popup_book_layout[1]);
     f.render_widget(read, popup_book_layout[2]);
+    f.render_widget(tags, popup_book_layout[3]);
 }
 
 fn block_border_style_if(block: Block, cond: bool, style: Style) -> Block {
