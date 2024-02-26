@@ -48,13 +48,13 @@ impl<'b> App<'b> {
             state: TableState::default().with_selected(Some(0)),
         }
     }
-    fn move_by(self: &mut Self, δ: isize) {
+    fn move_by(&mut self, δ: isize) {
         if let Some(i) = self.state.selected() {
             let j = move_by(i, δ, self.visible_books.len());
             self.state.select(Some(j))
         }
     }
-    fn move_to(self: &mut Self, i: isize) {
+    fn move_to(&mut self, i: isize) {
         match i.cmp(&0) {
             Ordering::Less => self
                 .state
@@ -65,7 +65,7 @@ impl<'b> App<'b> {
             )),
         }
     }
-    fn filter_currently_visible(self: &mut Self, filter: &Filter) {
+    fn filter_currently_visible(&mut self, filter: &Filter) {
         let matches = filter.filter_books(
             self.bookcase
                 .books
@@ -75,7 +75,7 @@ impl<'b> App<'b> {
         );
         self.visible_books = matches.map(|(&u, _)| u).collect()
     }
-    fn reset_visible(self: &mut Self) {
+    fn reset_visible(&mut self) {
         self.visible_books = self.bookcase.books.keys().cloned().collect()
     }
 }
@@ -97,7 +97,7 @@ pub fn start_tui(books: &mut Bookcase) -> Result<(), io::Error> {
     Ok(())
 }
 
-fn run_tui<B: Backend>(terminal: &mut Terminal<B>, mut app: &mut App) -> Result<(), io::Error> {
+fn run_tui<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<(), io::Error> {
     loop {
         if let Some(p) = &app.popup {
             match p {
@@ -121,7 +121,7 @@ fn run_tui<B: Backend>(terminal: &mut Terminal<B>, mut app: &mut App) -> Result<
             app.popup = None
         }
 
-        terminal.draw(|rect| draw(rect, &mut app))?;
+        terminal.draw(|rect| draw(rect, app))?;
 
         if event::poll(std::time::Duration::from_millis(100))? {
             if let Event::Key(key) = event::read()? {
@@ -228,7 +228,7 @@ where
     fn new(values: &[T]) -> Self {
         let len = values.len();
         let selected = vec![false; len];
-        let values = values.into_iter().cloned().collect();
+        let values = values.to_vec();
         SelectableList {
             values,
             selected,
@@ -324,7 +324,7 @@ impl FilterPopupApp {
     fn tab(&mut self) {
         self.switch_fields(self.current_field.next())
     }
-    fn to_filter(self) -> Filter {
+    fn into_filter(self) -> Filter {
         Filter {
             author_match: zip(self.authors.values, self.authors.selected)
                 .filter_map(|(a, b)| b.then_some(a))
@@ -337,9 +337,9 @@ impl FilterPopupApp {
     }
 }
 
-fn run_popup_filter<'f, B: Backend>(
+fn run_popup_filter<B: Backend>(
     terminal: &mut Terminal<B>,
-    books: &'f Bookcase,
+    books: &Bookcase,
 ) -> Result<Option<Filter>, io::Error> {
     let mut app_popup = FilterPopupApp::new(books);
     loop {
@@ -349,7 +349,7 @@ fn run_popup_filter<'f, B: Backend>(
                 if key.kind == KeyEventKind::Press {
                     use KeyCode::*;
                     match key.code {
-                        Enter => return Ok(Some(app_popup.to_filter())),
+                        Enter => return Ok(Some(app_popup.into_filter())),
                         Char('k') | Up => app_popup.move_by(-1),
                         Char('j') | Down => app_popup.move_by(1),
                         Esc => return Ok(None),
@@ -471,13 +471,13 @@ impl BookPopupApp {
             BookPopupField::Title => {
                 self.book.title.pop();
             }
-            BookPopupField::Tags => match self.tags.pop() {
-                Some(mut t) => match t.pop() {
-                    Some(_) => self.tags.push(t),
-                    None => {}
-                },
-                None => {}
-            },
+            BookPopupField::Tags => {
+                if let Some(mut t) = self.tags.pop() {
+                    if t.pop().is_some() {
+                        self.tags.push(t)
+                    }
+                }
+            }
             _ => {}
         }
     }
@@ -501,16 +501,16 @@ impl BookPopupApp {
             _ => {}
         }
     }
-    fn to_book(self) -> Book {
+    fn into_book(self) -> Book {
         let mut book = self.book;
         book.tags = self.tags.into_iter().collect();
         book
     }
 }
 
-fn run_popup_book<'b, B: Backend>(
+fn run_popup_book<B: Backend>(
     terminal: &mut Terminal<B>,
-    book: &'b Book,
+    book: &Book,
 ) -> Result<Option<Book>, io::Error> {
     let mut app_popup = BookPopupApp::new(book);
     loop {
@@ -520,7 +520,7 @@ fn run_popup_book<'b, B: Backend>(
                 if key.kind == KeyEventKind::Press {
                     use KeyCode::*;
                     match key.code {
-                        Enter => return Ok(Some(app_popup.to_book())),
+                        Enter => return Ok(Some(app_popup.into_book())),
                         Esc => return Ok(None),
                         Tab => app_popup.tab(),
                         Backspace => app_popup.backspace(),

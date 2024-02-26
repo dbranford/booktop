@@ -22,11 +22,11 @@ impl Bookcase {
         let _file = File::open(path).expect("Could not open file");
         serde_yaml::from_reader(_file).expect("Couldn't extract bookcase")
     }
-    pub fn close<P: AsRef<Path>>(&self, path: P) -> () {
+    pub fn close<P: AsRef<Path>>(&self, path: P) {
         let _file = File::create(path).expect("Could not open file");
         serde_yaml::to_writer(_file, self).expect("Could not write to file");
     }
-    pub fn add_book(&mut self, title: String, author: String) -> () {
+    pub fn add_book(&mut self, title: String, author: String) {
         let key = match self.books.keys().max() {
             Some(max_key) => max_key + 1,
             None => 1,
@@ -43,7 +43,7 @@ impl Bookcase {
         &self.books
     }
     pub fn get_authors(&self) -> Vec<&str> {
-        let mut authors: Vec<&str> = self.books.iter().map(|(_, b)| b.author.as_str()).collect();
+        let mut authors: Vec<&str> = self.books.values().map(|b| b.author.as_str()).collect();
         authors.dedup();
         authors
     }
@@ -61,10 +61,10 @@ impl Bookcase {
             None => panic!("No books to pick from"),
         }
     }
-    pub fn remove_book(&mut self, id: usize) -> () {
+    pub fn remove_book(&mut self, id: usize) {
         self.books.remove(&id);
     }
-    pub fn util_renumber(&mut self) -> () {
+    pub fn util_renumber(&mut self) {
         let tmp = self.books.split_off(&0);
         for (ind, val) in tmp.into_values().enumerate() {
             self.books.insert(ind + 1, val);

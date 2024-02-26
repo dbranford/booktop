@@ -73,7 +73,7 @@ enum UtilCommands {
     Renumber,
 }
 
-fn list(books: &books::Bookcase) -> () {
+fn list(books: &books::Bookcase) {
     println!("Bookcase: {}", books.name);
     println!("========================================");
     for (id, bk) in books.get_books() {
@@ -151,7 +151,7 @@ fn main() {
         }
         Commands::Tui { file } => {
             if let Some(file) = file {
-                books = books::Bookcase::open(&file)
+                books = books::Bookcase::open(file)
             };
             tui::start_tui(&mut books).ok();
         }

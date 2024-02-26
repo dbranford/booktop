@@ -10,7 +10,7 @@ pub struct Filter {
 }
 
 impl Filter {
-    fn match_book(self: &Self, book: &Book) -> bool {
+    fn match_book(&self, book: &Book) -> bool {
         (self.author_match.is_empty()
             || self
                 .author_match
