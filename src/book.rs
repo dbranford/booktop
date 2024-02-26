@@ -87,6 +87,17 @@ impl fmt::Display for Book {
     }
 }
 
+impl Default for Book {
+    fn default() -> Self {
+        Book {
+            title: "Title Unknown".to_string(),
+            author: "Author Unknown".to_string(),
+            read: Read::default(),
+            tags: HashSet::default(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
