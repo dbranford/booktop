@@ -41,7 +41,7 @@ pub struct Book {
     pub title: String,
     pub author: String,
     #[serde(default)]
-    read: Read,
+    pub read: Read,
     #[serde(default)]
     pub tags: HashSet<String>,
 }

@@ -42,6 +42,15 @@ impl Bookcase {
     pub fn get_books(&self) -> impl IntoIterator<Item = (&usize, &Book)> {
         &self.books
     }
+    pub fn get_books_by_keys<'k>(
+        &'k self,
+        keys: &'k [usize],
+    ) -> impl Iterator<Item = (&'k usize, &'k Book)> {
+        // Maybe this should return Item = Option<(&usize, &Book)> so that requested keys that do
+        // not appear in self.books can be caught? Would require iterating through the keys and
+        // using get_book. TUI should never send such a request, but CLI might?
+        self.books.iter().filter(move |(k, _)| keys.contains(k))
+    }
     pub fn get_authors(&self) -> Vec<&str> {
         let mut authors: Vec<&str> = self.books.values().map(|b| b.author.as_str()).collect();
         authors.dedup();
@@ -75,22 +84,41 @@ impl Bookcase {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
+
+    fn test_book1() -> Book {
+        Book {
+            title: "Titular Title".to_string(),
+            author: "Authoritative Author".to_string(),
+            tags: HashSet::from(["alpha".to_string(), "beta".to_string()]),
+            ..Default::default()
+        }
+    }
+
+    fn test_book2() -> Book {
+        Book {
+            title: "Uitular Title".to_string(),
+            author: "Buthoritative Author".to_string(),
+            tags: HashSet::from(["alpha".to_string(), "beta".to_string()]),
+            ..Default::default()
+        }
+    }
+
+    fn test_book3() -> Book {
+        Book {
+            title: "Vitular Title".to_string(),
+            author: "Cuthoritative Author".to_string(),
+            ..Default::default()
+        }
+    }
 
     fn test_bookcase() -> Bookcase {
-        let mut b1 = Book::new(
-            "Titular Title".to_string(),
-            "Authoritative Author".to_string(),
-        );
-        let mut b2 = Book::new(
-            "Uitular Title".to_string(),
-            "Buthoritative Author".to_string(),
-        );
-        b1.tag("alpha");
-        b1.tag("beta");
-        b2.tag("alpha");
+        let b1 = test_book1();
+        let b2 = test_book2();
+        let b3 = test_book3();
         Bookcase {
             name: "Bookcase name".to_string(),
-            books: BTreeMap::from([(1, b1), (2, b2)]),
+            books: BTreeMap::from([(1, b1), (2, b2), (3, b3)]),
         }
     }
 
@@ -108,5 +136,35 @@ mod tests {
             HashSet::<String>::from_iter(tags),
             HashSet::<String>::from_iter(vec!["alpha".to_string(), "beta".to_string()])
         )
+    }
+
+    #[test]
+    fn get_books() {
+        let b = test_bookcase();
+
+        assert_eq!(b.get_book(1), Some(&test_book1()));
+        assert_eq!(b.get_book(9), None);
+
+        let mut b = b;
+
+        assert_eq!(b.get_mut_book(1), Some(&mut test_book1()));
+        assert_eq!(b.get_mut_book(9), None);
+
+        let b = b;
+
+        // Do not care about order in which get_books_by_keys returns
+        assert_eq!(
+            HashMap::from_iter(b.get_books_by_keys(&[2, 1])),
+            HashMap::from([(&1, &test_book1()), (&2, &test_book2())])
+        );
+
+        assert_eq!(
+            b.get_books().into_iter().collect::<Vec<_>>(),
+            vec![
+                (&1, &test_book1()),
+                (&2, &test_book2()),
+                (&3, &test_book3())
+            ]
+        );
     }
 }

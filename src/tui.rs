@@ -68,9 +68,7 @@ impl<'b> App<'b> {
     fn filter_currently_visible(&mut self, filter: &Filter) {
         let matches = filter.filter_books(
             self.bookcase
-                .books
-                .iter()
-                .filter(|(k, _)| self.visible_books.contains(k))
+                .get_books_by_keys(&self.visible_books)
                 .collect(),
         );
         self.visible_books = matches.map(|(&u, _)| u).collect()
