@@ -8,25 +8,25 @@ mod tui;
 mod util;
 
 #[derive(Debug, Parser)]
-#[clap(about = "A basic tracker for books", long_about = None)]
+#[command(about = "A basic tracker for books", long_about = None)]
 struct Cli {
-    #[clap(long, short)]
+    #[arg(long, short)]
     /// File containing existing bookcase
     file: Option<PathBuf>,
 
-    #[clap(long, takes_value = false)]
+    #[arg(long, num_args = 0)]
     /// Do not attempt to open a (default) file
     no_file: bool,
 
-    #[clap(long, takes_value = false)]
+    #[arg(long, num_args = 0)]
     /// Run commands without updating the file
     dry_run: bool,
 
-    #[clap(short, long, takes_value = false)]
+    #[arg(short, long, num_args = 0)]
     /// Follow command with list
     list: bool,
 
-    #[clap(subcommand)]
+    #[command(subcommand)]
     command: Commands,
 }
 
@@ -58,10 +58,10 @@ enum Commands {
 
 #[derive(Debug, Args)]
 struct Util {
-    #[clap(subcommand)]
+    #[command(subcommand)]
     command: UtilCommands,
 
-    #[clap(short, long, takes_value = false)]
+    #[arg(short, long, num_args = 0)]
     write: bool,
 }
 
