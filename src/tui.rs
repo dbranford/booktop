@@ -69,6 +69,7 @@ impl<'b> App<'b> {
         let matches = filter.filter_books(
             self.bookcase
                 .get_books_by_keys(&self.visible_books)
+                .flatten()
                 .collect(),
         );
         self.visible_books = matches.map(|(&u, _)| u).collect()
@@ -107,7 +108,7 @@ fn run_tui<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<(), 
                 }
                 Popup::Book => {
                     if let Some(i) = app.state.selected() {
-                        if let Some(b) = app.bookcase.get_book(app.visible_books[i]) {
+                        if let Some(b) = app.bookcase.get_book(&app.visible_books[i]) {
                             let returned_book = run_popup_book(terminal, b)?;
                             if let Some(book) = returned_book {
                                 app.bookcase.books.insert(app.visible_books[i], book);
@@ -156,10 +157,8 @@ fn draw(rect: &mut Frame, app: &mut App) {
 
     let rows = app
         .bookcase
-        .get_books()
-        .into_iter()
-        .filter(|(u, _)| app.visible_books.contains(u))
-        .map(|b| row_from_book(b));
+        .get_books_by_keys(&app.visible_books)
+        .filter_map(|b| b.map(|b| row_from_book(b)));
 
     let contents = Table::new(
         rows,
