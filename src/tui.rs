@@ -596,3 +596,23 @@ fn block_border_style_if(block: Block, cond: bool, style: Style) -> Block {
         false => block,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_sorting() {
+        let mut books = Bookcase::new();
+        for (t, a) in zip(["b", "a", "c"], ["G", "A", "F"]) {
+            books.add_book(t.to_string(), a.to_string());
+        }
+        let mut app = App::new(&mut books);
+
+        app.sort_by(&BookSorting::Title);
+        assert_eq!(app.visible_books, vec![2, 1, 3]);
+
+        app.sort_by(&BookSorting::Author);
+        assert_eq!(app.visible_books, vec![2, 3, 1]);
+    }
+}
