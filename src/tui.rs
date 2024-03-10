@@ -131,31 +131,37 @@ fn run_tui<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<(), 
 
         terminal.draw(|rect| draw(rect, app))?;
 
-        if event::poll(std::time::Duration::from_millis(100))? {
-            if let Event::Key(key) = event::read()? {
-                if key.kind == KeyEventKind::Press {
-                    use KeyCode::*;
-                    match key.code {
-                        Char('q') | Esc => return Ok(()),
-                        Char('j') | Down => app.move_by(1),
-                        Char('k') | Up => app.move_by(-1),
-                        Char('G') => app.move_to(-1),
-                        Char('f') => app.popup = Some(Popup::Filter),
-                        Char('F') => app.reset_visible(),
-                        Enter => app.popup = Some(Popup::Book),
-                        Char('?') => {
-                            let n =
-                                rand::thread_rng().gen_range(0..app.visible_books.len()) as isize;
-                            app.move_to(n);
-                        }
-                        Char('T') => app.sort_by(&BookSorting::Title),
-                        Char('A') => app.sort_by(&BookSorting::Author),
-                        _ => {}
-                    }
+        if let Some(key) = poll_key()? {
+            use KeyCode::*;
+            match key {
+                Char('q') | Esc => return Ok(()),
+                Char('j') | Down => app.move_by(1),
+                Char('k') | Up => app.move_by(-1),
+                Char('G') => app.move_to(-1),
+                Char('f') => app.popup = Some(Popup::Filter),
+                Char('F') => app.reset_visible(),
+                Enter => app.popup = Some(Popup::Book),
+                Char('?') => {
+                    let n = rand::thread_rng().gen_range(0..app.visible_books.len()) as isize;
+                    app.move_to(n);
                 }
+                Char('T') => app.sort_by(&BookSorting::Title),
+                Char('A') => app.sort_by(&BookSorting::Author),
+                _ => {}
             }
         }
     }
+}
+
+fn poll_key() -> Result<Option<KeyCode>, io::Error> {
+    if event::poll(std::time::Duration::from_millis(100))? {
+        if let Event::Key(key) = event::read()? {
+            if key.kind == KeyEventKind::Press {
+                return Ok(Some(key.code));
+            }
+        }
+    }
+    Ok(None)
 }
 
 fn draw(rect: &mut Frame, app: &mut App) {
@@ -352,21 +358,17 @@ fn run_popup_filter<B: Backend>(
     let mut app_popup = FilterPopupApp::new(books);
     loop {
         terminal.draw(|rect| draw_popup_filter(rect, &mut app_popup))?;
-        if event::poll(std::time::Duration::from_millis(100))? {
-            if let Event::Key(key) = event::read()? {
-                if key.kind == KeyEventKind::Press {
-                    use KeyCode::*;
-                    match key.code {
-                        Enter => return Ok(Some(app_popup.into_filter())),
-                        Char('k') | Up => app_popup.move_by(-1),
-                        Char('j') | Down => app_popup.move_by(1),
-                        Esc => return Ok(None),
-                        Backspace | Delete => app_popup.deselect(),
-                        Tab => app_popup.tab(),
-                        Left | Right => app_popup.toggle(),
-                        _ => {}
-                    }
-                }
+        if let Some(key) = poll_key()? {
+            use KeyCode::*;
+            match key {
+                Enter => return Ok(Some(app_popup.into_filter())),
+                Char('k') | Up => app_popup.move_by(-1),
+                Char('j') | Down => app_popup.move_by(1),
+                Esc => return Ok(None),
+                Backspace | Delete => app_popup.deselect(),
+                Tab => app_popup.tab(),
+                Left | Right => app_popup.toggle(),
+                _ => {}
             }
         }
     }
@@ -523,19 +525,15 @@ fn run_popup_book<B: Backend>(
     let mut app_popup = BookPopupApp::new(book);
     loop {
         terminal.draw(|rect| draw_popup_book(rect, &mut app_popup))?;
-        if event::poll(std::time::Duration::from_millis(100))? {
-            if let Event::Key(key) = event::read()? {
-                if key.kind == KeyEventKind::Press {
-                    use KeyCode::*;
-                    match key.code {
-                        Enter => return Ok(Some(app_popup.into_book())),
-                        Esc => return Ok(None),
-                        Tab => app_popup.tab(),
-                        Backspace => app_popup.backspace(),
-                        Char(value) => app_popup.input(value),
-                        _ => {}
-                    }
-                }
+        if let Some(key) = poll_key()? {
+            use KeyCode::*;
+            match key {
+                Enter => return Ok(Some(app_popup.into_book())),
+                Esc => return Ok(None),
+                Tab => app_popup.tab(),
+                Backspace => app_popup.backspace(),
+                Char(value) => app_popup.input(value),
+                _ => {}
             }
         }
     }
